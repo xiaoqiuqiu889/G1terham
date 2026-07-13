@@ -1,5 +1,7 @@
 # V4 美术方向与镜头清单
 
+> 历史美术记录：本文保留既有镜头生成依据；现行叙事契约、交互规则与 canonical 毕业照连续性要求以 [`V5-DESIGN-CONTRACT.md`](./V5-DESIGN-CONTRACT.md) 为准。
+
 ## 交付结论
 
 - 生成方式：OpenAI 内置 `image_gen`，每个资产独立生成。

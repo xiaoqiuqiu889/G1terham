@@ -46,9 +46,10 @@ test("three resonance actions are configured and do not carry score axes", () =>
 });
 
 test("required full-run operations stay within 35 to 40", () => {
-  const actions = logic.estimateMinimumActions(story.scenes);
+  const actions = logic.estimateMinimumActions(story.scenes) + 2; // 两次放映机协作替代一次普通继续
   assert.ok(actions >= 35 && actions <= 40, `estimated actions: ${actions}`);
   assert.ok(story.scenes.findIndex(scene => scene.choiceId === "choice-one") <= 3);
+  assert.match(page, /ProjectorRepair/);
 });
 
 test("late game keeps email and gaze as meaningful inputs", () => {
@@ -70,8 +71,9 @@ test("choice confirmation waits for the player after animation", () => {
 test("first echo is readable and reunion observation is not duplicated", () => {
   assert.ok(story.scenes.some(scene => scene.id === "echo-one"));
   assert.match(page, /echoChoiceByScene/);
-  assert.equal((page.match(/scene\.id==="gaze"/g) || []).length, 1);
-  assert.equal((page.match(/scene\.id==="crossroads"/g) || []).length, 1);
+  assert.match(page, /resolveFutureEchoes/);
+  assert.ok(Object.values(story.futureEchoRoutes).every(routes => routes.length <= 2));
+  assert.doesNotMatch(page, /scene\.id==="gaze"|scene\.id==="book"|scene\.id==="crossroads"/);
 });
 
 test("memory editing room compares future echoes after a five-second pause", () => {
@@ -105,45 +107,49 @@ test("object closeups and restrained sound motifs cover all required props", () 
   for (const object of ["photo","ticket","poem","list","email","book"]) assert.ok(objects.has(object));
 });
 
-test("V3.1 resonance actions use distinct interaction languages and literary confirmations", () => {
+test("resonance actions use three physical interaction languages and literary confirmations", () => {
   for (const options of Object.values(story.resonanceContracts)) {
     for (const option of options) assert.ok(option.confirmation);
   }
-  assert.match(page, /resonanceClass/);
-  for (const type of ["photo","email","gaze"]) assert.match(css, new RegExp(`resonance-${type}`));
+  for (const component of ["PhotoInteraction","EmailInteraction","GazeInteraction"]) assert.match(page, new RegExp(`function ${component}`));
+  for (const type of ["photo","email","gaze"]) assert.match(css, new RegExp(`\\.${type}-interaction`));
   assert.doesNotMatch(page, /不改变分数|历史不会改变/);
-  assert.match(page, /把照片放在哪里/);
-  assert.match(page, /哪一句停在删除键前/);
-  assert.match(page, /镜头先停在哪里/);
+  assert.match(page, /onDrop/);
+  assert.match(page, /<textarea/);
+  assert.match(page, /gaze-hotspot/);
 });
 
-test("V3.1 journal and ending expose literary state without flattening all memories", () => {
+test("journal and ending expose literary state without flattening all memories", () => {
   assert.match(page, /paperState/);
   assert.match(page, /lightState/);
   assert.match(page, /distanceState/);
-  assert.match(page, /你亲手留下的三段记忆/);
-  assert.match(page, /画外仍在发生/);
+  assert.match(page, /三个主动作/);
+  assert.match(page, /三个镜头锚点/);
+  assert.match(page, /查看本轮剪辑 \/ 记忆档案/);
   assert.match(page, /selectUnchosenFragments/);
   assert.match(page, /trapFocus/);
-  assert.match(page, /第 \{pad\(sceneNumber\)\} \/ \{pad\(totalScenes\)\} 幕/);
+  assert.doesNotMatch(page, /第 \{pad\(sceneNumber\)\} \/ \{pad\(totalScenes\)\} 幕/);
 });
 
 test("near echoes receive a visible object signature", () => {
   assert.match(page, /echo-signature/);
   assert.match(page, /回声抵达/);
 });
-test("Persian-inspired BGM is chapter-aware, restrained, and opt-in", () => {
+test("chapter-aware music remains restrained and explicitly opt-in", () => {
   for (const marker of ["shurCents","startPersianTheme","santurSpark","tombak","musicTimer"]) assert.match(audio, new RegExp(marker));
   assert.match(page, /useState\(false\)/);
-  assert.match(page, /波斯调式音乐 · 默认关闭/);
+  assert.match(page, /有声进入/);
+  assert.match(page, /静音进入/);
+  assert.doesNotMatch(page, /波斯调式音乐 · 默认关闭/);
   assert.match(page, /音乐开/);
 });
 
-test("art library doubles again with scene-specific, referenced V4 shots", async () => {
-  const [v2, v3, v4] = await Promise.all([
+test("art library retains V4 shots and integrates the canonical V5 continuity set", async () => {
+  const [v2, v3, v4, v5] = await Promise.all([
     readdir(new URL("../public/art-v2/", import.meta.url)),
     readdir(new URL("../public/art-v3/", import.meta.url)),
     readdir(new URL("../public/art-v4/", import.meta.url)),
+    readdir(new URL("../public/art-v5/", import.meta.url)),
   ]);
   const png = files => files.filter(file => file.endsWith(".png"));
   const expectedV4 = [
@@ -154,9 +160,18 @@ test("art library doubles again with scene-specific, referenced V4 shots", async
     "istanbul-cafe-arrival.png", "poetry-book-photo-close.png",
   ];
   assert.equal(png(v4).length, 14);
-  assert.ok(png(v2).length + png(v3).length + png(v4).length >= 28);
+  assert.ok(png(v2).length + png(v3).length + png(v4).length + png(v5).length >= 38);
   for (const asset of expectedV4) {
     assert.ok(v4.includes(asset), `missing ${asset}`);
+  }
+  const expectedV5 = [
+    "canonical-graduation-photo.png", "graduation-photo-day.png", "istanbul-cafe-photo-close.png",
+    "istanbul-reunion-aged.png", "istanbul-reunion-aged-mobile.png", "poetry-book-photo-close.png",
+    "istanbul-crossroads-aged.png", "istanbul-crossroads-aged-mobile.png",
+    "san-jose-arrival-2011.png", "san-jose-arrival-2011-mobile.png",
+  ];
+  for (const asset of expectedV5) {
+    assert.ok(v5.includes(asset), `missing ${asset}`);
     assert.match(storySource + page, new RegExp(asset.replace(".", "\\.")), `unreferenced ${asset}`);
   }
   assert.match(page, /scene\.arts/);

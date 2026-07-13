@@ -64,3 +64,48 @@ test("selected resonance options never return as unchosen fragments", () => {
     { optionId: "clock", text: "gaze shard" },
   ]);
 });
+
+function answer(axis, optionId) {
+  return { axis, optionId, endingFragment: "", revisitEcho: "" };
+}
+
+test("cinematic epilogues stay short, name both present-day partners, and cover four tones", () => {
+  const routes = [
+    ["speak", { one: answer("speak", "poem"), two: answer("speak", "reporter"), three: answer("speak", "truth") }],
+    ["keep", { one: answer("keep", "kiss"), two: answer("keep", "book"), three: answer("keep", "escape") }],
+    ["survive", { one: answer("survive", "leave"), two: answer("survive", "burn"), three: answer("survive", "conceal") }],
+    ["mixed", { one: answer("speak", "poem"), two: answer("keep", "book"), three: answer("survive", "conceal") }],
+  ];
+  const resonances = { photo: { optionId: "front" } };
+  for (const [ending, answers] of routes) {
+    const text = logic.composeCinematicEpilogue(ending, answers, resonances);
+    assert.ok(text.length >= 80 && text.length <= 120, `${ending}: ${text.length} chars`);
+    assert.match(text, /卡姆兰/);
+    assert.match(text, /玛丽亚姆/);
+  }
+});
+
+test("the reunion gaze becomes the final visible camera lens", () => {
+  const answers = { one: answer("speak", "poem"), two: answer("keep", "book"), three: answer("survive", "conceal") };
+  for (const [optionId, marker] of [["hands", "茶杯的手"], ["book", "旧诗集"], ["clock", "机场方向牌"]]) {
+    const text = logic.composeCinematicEpilogue("mixed", answers, { photo: { optionId: "front" }, gaze: { optionId } });
+    assert.match(text, new RegExp(marker));
+  }
+});
+
+test("secondary axis is not invented from array order when the runners-up tie", () => {
+  assert.equal(logic.determineSecondaryAxis({ speak: 3, keep: 0, survive: 0 }, "speak"), "speak");
+  assert.equal(logic.determineSecondaryAxis({ speak: 2, keep: 1, survive: 0 }, "speak"), "keep");
+  assert.equal(logic.determineSecondaryAxis({ speak: 1, keep: 1, survive: 1 }, "mixed"), null);
+});
+
+test("future echo routing never emits more than two configured lines", () => {
+  const routes = [
+    { source: "choice", id: "one", field: "farEcho" },
+    { source: "resonance", id: "email", field: "farEcho" },
+    { source: "choice", id: "two", field: "farEcho" },
+  ];
+  const answers = { one: { farEcho: "first" }, two: { farEcho: "third" } };
+  const resonances = { email: { farEcho: "second" } };
+  assert.deepEqual(logic.resolveFutureEchoes(routes, answers, resonances), ["first", "second"]);
+});

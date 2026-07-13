@@ -1,5 +1,6 @@
 type Cue="choice"|"transition"|"save"|"ending";
 type Motif="photo"|"paper"|"ash"|"ticket"|"email"|string;
+type Texture="projector"|"fluorescent"|"keyboard"|"airport"|"tea"|"rain";
 
 type ThemePreset={tempo:number;base:number;volume:number;melody:number[];drum:number[]};
 
@@ -100,6 +101,20 @@ export class AudioEngine{
     const [from,to,duration]=patterns[type]||patterns.paper;const oscillator=this.context.createOscillator();const gain=this.context.createGain();const filter=this.context.createBiquadFilter();
     oscillator.type=type==="ash"?"sawtooth":type==="photo"?"sine":"triangle";oscillator.frequency.setValueAtTime(from,now);oscillator.frequency.exponentialRampToValueAtTime(to,now+duration);filter.type="lowpass";filter.frequency.value=type==="ash"?240:1200;
     gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(type==="ash"?.012:.022,now+.025);gain.gain.exponentialRampToValueAtTime(.0001,now+duration);oscillator.connect(filter).connect(gain).connect(this.master);oscillator.start(now);oscillator.stop(now+duration+.02);
+  }
+
+  texture(type:Texture){
+    if(!this.context||!this.master||this.context.state!=="running")return;
+    const now=this.context.currentTime;const duration=type==="projector"?1.1:type==="rain"?.9:.42;
+    const buffer=this.context.createBuffer(1,Math.floor(this.context.sampleRate*duration),this.context.sampleRate);const data=buffer.getChannelData(0);
+    for(let i=0;i<data.length;i+=1){const falloff=Math.pow(1-i/data.length,type==="rain"?.45:1.8);data[i]=(Math.random()*2-1)*falloff}
+    const source=this.context.createBufferSource();source.buffer=buffer;const filter=this.context.createBiquadFilter();const gain=this.context.createGain();
+    const profiles:Record<Texture,[BiquadFilterType,number,number]>={projector:["lowpass",310,.008],fluorescent:["bandpass",118,.004],keyboard:["highpass",1800,.007],airport:["bandpass",620,.006],tea:["highpass",2400,.006],rain:["lowpass",1100,.008]};
+    const [filterType,frequency,peak]=profiles[type];filter.type=filterType;filter.frequency.value=frequency;gain.gain.setValueAtTime(.0001,now);gain.gain.linearRampToValueAtTime(peak,now+.025);gain.gain.exponentialRampToValueAtTime(.0001,now+duration);
+    source.connect(filter).connect(gain).connect(this.master);source.start(now);source.stop(now+duration+.02);
+    if(type==="projector"||type==="fluorescent"){
+      const hum=this.context.createOscillator();const humGain=this.context.createGain();hum.type="sine";hum.frequency.value=type==="projector"?48:100;humGain.gain.setValueAtTime(.0001,now);humGain.gain.linearRampToValueAtTime(type==="projector"?.006:.003,now+.03);humGain.gain.exponentialRampToValueAtTime(.0001,now+duration);hum.connect(humGain).connect(this.master);hum.start(now);hum.stop(now+duration+.02);
+    }
   }
 
   cue(type:Cue){
