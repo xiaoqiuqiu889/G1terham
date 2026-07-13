@@ -196,5 +196,14 @@ test("desktop and mobile controls remain available", () => {
 test("launcher uses installed vinext directly and has package-manager fallbacks", () => {
   assert.match(launcher, /node_modules\\\.bin\\vinext\.cmd/);
   assert.match(launcher, /BUNDLED_ROOT/);
-  assert.match(launcher, /npm install --ignore-scripts/);
+  assert.match(launcher, /EnableDelayedExpansion/);
+  assert.match(launcher, /npm\.cmd/);
+  assert.match(launcher, /pnpm\.cmd/);
+  assert.match(launcher, /ci --ignore-scripts --no-audit --no-fund/);
+  assert.match(launcher, /--bootstrap-check/);
+  assert.match(launcher, /call "!PACKAGE_COMMAND!" --version/);
+  assert.match(launcher, /read-only for the current Windows account/);
+  assert.match(launcher, /%USERPROFILE%/);
+  assert.doesNotMatch(launcher, /call "%PNPM%"/);
+  assert.doesNotMatch(launcher, /^:[a-z_]+/gim);
 });
