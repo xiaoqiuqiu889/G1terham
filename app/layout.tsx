@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import "./globals.css";
 
@@ -10,15 +10,15 @@ export async function generateMetadata(): Promise<Metadata> {
   const image = new URL("/og.png", origin).toString();
   return {
     title: "革命街没有尽头｜互动电影",
-    description: "选择不能改变历史，只改变我们如何记住它。一部关于德黑兰、爱情与不同活法的互动叙事。",
+    description: "十三年后，一对曾约定离开德黑兰的恋人在伊斯坦布尔重逢。你将亲手保存、删去并交还这段往事。",
     openGraph: {
       title: "革命街没有尽头",
-      description: "选择不能改变历史，只改变我们如何记住它。",
+      description: "亲手保存、删去并交还一段发生在德黑兰的爱情往事。",
       type: "website",
       url: origin,
       images: [{ url: image, width: 1672, height: 941, alt: "革命街没有尽头互动电影" }],
     },
-    twitter: { card: "summary_large_image", title: "革命街没有尽头", description: "选择不能改变历史，只改变我们如何记住它。", images: [image] },
+    twitter: { card: "summary_large_image", title: "革命街没有尽头", description: "亲手保存、删去并交还一段发生在德黑兰的爱情往事。", images: [image] },
   };
 }
 

@@ -1,87 +1,185 @@
-﻿import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import assert from "node:assert/strict";
+import { readFile, readdir } from "node:fs/promises";
 import test from "node:test";
 import ts from "typescript";
 
-const [page, css, audio, storySource] = await Promise.all([
+const [page, css, audio, storySource, logicSource, launcher] = await Promise.all([
   readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
   readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   readFile(new URL("../app/audio-engine.ts", import.meta.url), "utf8"),
   readFile(new URL("../app/story.ts", import.meta.url), "utf8"),
+  readFile(new URL("../app/game-logic.ts", import.meta.url), "utf8"),
+  readFile(new URL("../启动游戏.cmd", import.meta.url), "utf8"),
 ]);
 const storyJs = ts.transpileModule(storySource, {
   compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 },
 }).outputText.replace(/^import .*?;\s*$/gm, "");
 const story = await import(`data:text/javascript;base64,${Buffer.from(storyJs).toString("base64")}`);
+const logicJs = ts.transpileModule(logicSource, {
+  compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 },
+}).outputText;
+const logic = await import(`data:text/javascript;base64,${Buffer.from(logicJs).toString("base64")}`);
 
-test("expanded story has sustained scenes, chapters and skippable montages", () => {
-  assert.ok(story.scenes.length >= 28);
-  assert.ok(story.scenes.filter(scene => scene.kind === "chapter").length >= 5);
-  assert.ok(story.scenes.filter(scene => scene.kind === "montage").length >= 2);
-  assert.match(page, /显示全部/);
+test("main choices use speak, keep and survive through understandable actions", () => {
+  const byId = Object.fromEntries(Object.values(story.memoryContracts).flat().map(option => [option.id, option.axis]));
+  for (const id of ["poem","reporter","truth"]) assert.equal(byId[id], "speak");
+  for (const id of ["kiss","book","escape"]) assert.equal(byId[id], "keep");
+  for (const id of ["leave","burn","conceal"]) assert.equal(byId[id], "survive");
 });
 
-test("all three choices have configured feedback and nine later echoes", () => {
-  assert.equal(Object.values(story.choiceEchoes).flatMap(Object.values).length, 9);
-  for (const choiceId of story.choiceIds) {
-    const scene = story.scenes.find(item => item.choiceId === choiceId);
-    assert.equal(scene.choices.length, 3);
-    scene.choices.forEach(option => {
-      assert.ok(option.memory);
-      assert.ok(option.confirmation);
-      assert.ok(option.motif);
-    });
+test("every main option fulfills the complete memory echo contract", () => {
+  const options = Object.values(story.memoryContracts).flat();
+  assert.equal(options.length, 9);
+  for (const option of options) {
+    for (const field of ["memory","confirmation","nearEcho","farEcho","endingFragment","revisitEcho","motif","sound"]) {
+      assert.ok(option[field], `${option.id} missing ${field}`);
+    }
   }
-  assert.match(page, /reduced\?140:760/);
-  assert.match(page, /disabled=\{Boolean\(selectedOption\)\}/);
-  assert.match(page, /role="status"/);
 });
 
-test("back navigation and local saves preserve full snapshots", () => {
-  assert.match(page, /type HistoryEntry/);
-  assert.match(page, /setAnswers\(previous\.answers\)/);
-  assert.match(page, /localStorage\.setItem\(SAVE_KEY/);
-  assert.match(page, /继续上次记忆/);
-  assert.match(page, /进度已保存到本设备/);
+test("three resonance actions are configured and do not carry score axes", () => {
+  assert.deepEqual(Object.keys(story.resonanceContracts), ["photo","email","gaze"]);
+  for (const options of Object.values(story.resonanceContracts)) {
+    assert.equal(options.length, 3);
+    options.forEach(option => assert.equal("axis" in option, false));
+  }
 });
 
-test("journal is literary, accessible and available on touch screens", () => {
-  assert.match(page, /motif-strip/);
-  assert.match(page, /memoryStrength\(scores\[key\]\)/);
-  assert.match(page, /aria-modal="true"/);
-  assert.match(page, /journalCloseRef\.current\?\.focus/);
-  assert.match(page, /journalTriggerRef\.current\?\.focus/);
-  assert.match(css, /\.top-actions button\{min-width:44px;min-height:44px/);
+test("required full-run operations stay within 35 to 40", () => {
+  const actions = logic.estimateMinimumActions(story.scenes);
+  assert.ok(actions >= 35 && actions <= 40, `estimated actions: ${actions}`);
+  assert.ok(story.scenes.findIndex(scene => scene.choiceId === "choice-one") <= 3);
+});
+
+test("late game keeps email and gaze as meaningful inputs", () => {
+  const lateStart = Math.floor(story.scenes.length * 2 / 3);
+  const lateIds = story.scenes.slice(lateStart).filter(scene => scene.kind === "resonance").map(scene => scene.resonanceId);
+  assert.ok(lateIds.includes("email"));
+  assert.ok(lateIds.includes("gaze"));
+});
+
+test("choice confirmation waits for the player after animation", () => {
+  assert.match(page, /reduced\?80:700/);
+  assert.match(page, /setConfirmationReady\(true\)/);
+  assert.match(page, /带着这段记忆继续/);
+  assert.match(page, /commitSelection/);
+  const selectBlock = page.slice(page.indexOf("const selectOption="), page.indexOf("const commitSelection="));
+  assert.doesNotMatch(selectBlock, /setSceneIndex/);
+});
+
+test("first echo is readable and reunion observation is not duplicated", () => {
+  assert.ok(story.scenes.some(scene => scene.id === "echo-one"));
+  assert.match(page, /echoChoiceByScene/);
+  assert.equal((page.match(/scene\.id==="gaze"/g) || []).length, 1);
+  assert.equal((page.match(/scene\.id==="crossroads"/g) || []).length, 1);
+});
+
+test("memory editing room compares future echoes after a five-second pause", () => {
+  assert.equal(story.revisitScenes.filter(scene => scene.kind === "revisitEcho").length, 3);
+  assert.match(page, /window\.setTimeout\(\(\)=>setEchoReady\(true\),5500\)/);
+  assert.match(page, /沿用上轮/);
+  assert.match(page, /futureBefore/);
+  assert.match(page, /futureAfter/);
+  assert.match(page, /未选择的记忆残片/);
+});
+
+test("prop and character continuity is explicit", () => {
+  assert.match(storySource, /冲洗了两张相同的照片/);
+  assert.match(storySource, /六个月后获释/);
+  assert.match(storySource, /父亲中风/);
+  assert.match(storySource, /空荡的停车场/);
+  assert.match(storySource, /记录流星/);
+  assert.doesNotMatch(storySource, /选择没有改变/);
+});
+
+test("first-run journal hides axes while post-game unlocks explanations", () => {
+  assert.match(page, /!unlocked\?/);
+  assert.match(page, /通关后解锁 · 三种动作/);
+  assert.match(page, /记忆天气/);
+});
+
+test("object closeups and restrained sound motifs cover all required props", () => {
+  for (const motif of ["photo","paper","ash","ticket","email"]) assert.match(audio, new RegExp(motif));
+  assert.match(css, /\.object-shot/);
+  const objects = new Set(story.scenes.map(scene => scene.object).filter(Boolean));
+  for (const object of ["photo","ticket","poem","list","email","book"]) assert.ok(objects.has(object));
+});
+
+test("V3.1 resonance actions use distinct interaction languages and literary confirmations", () => {
+  for (const options of Object.values(story.resonanceContracts)) {
+    for (const option of options) assert.ok(option.confirmation);
+  }
+  assert.match(page, /resonanceClass/);
+  for (const type of ["photo","email","gaze"]) assert.match(css, new RegExp(`resonance-${type}`));
+  assert.doesNotMatch(page, /不改变分数|历史不会改变/);
+  assert.match(page, /把照片放在哪里/);
+  assert.match(page, /哪一句停在删除键前/);
+  assert.match(page, /镜头先停在哪里/);
+});
+
+test("V3.1 journal and ending expose literary state without flattening all memories", () => {
+  assert.match(page, /paperState/);
+  assert.match(page, /lightState/);
+  assert.match(page, /distanceState/);
+  assert.match(page, /你亲手留下的三段记忆/);
+  assert.match(page, /画外仍在发生/);
+  assert.match(page, /selectUnchosenFragments/);
+  assert.match(page, /trapFocus/);
+  assert.match(page, /第 \{pad\(sceneNumber\)\} \/ \{pad\(totalScenes\)\} 幕/);
+});
+
+test("near echoes receive a visible object signature", () => {
+  assert.match(page, /echo-signature/);
+  assert.match(page, /回声抵达/);
+});
+test("Persian-inspired BGM is chapter-aware, restrained, and opt-in", () => {
+  for (const marker of ["shurCents","startPersianTheme","santurSpark","tombak","musicTimer"]) assert.match(audio, new RegExp(marker));
+  assert.match(page, /useState\(false\)/);
+  assert.match(page, /波斯调式音乐 · 默认关闭/);
+  assert.match(page, /音乐开/);
+});
+
+test("art library doubles again with scene-specific, referenced V4 shots", async () => {
+  const [v2, v3, v4] = await Promise.all([
+    readdir(new URL("../public/art-v2/", import.meta.url)),
+    readdir(new URL("../public/art-v3/", import.meta.url)),
+    readdir(new URL("../public/art-v4/", import.meta.url)),
+  ]);
+  const png = files => files.filter(file => file.endsWith(".png"));
+  const expectedV4 = [
+    "university-gate-autumn.png", "underground-projector-close.png", "graduation-photo-day.png",
+    "student-publication-room.png", "dorm-search-night.png", "university-gate-expulsion.png",
+    "video-call-kamran.png", "final-rooftop-night.png", "airport-clock-goodbye.png",
+    "localization-office.png", "maryam-telescope-rooftop.png", "email-delete-night.png",
+    "istanbul-cafe-arrival.png", "poetry-book-photo-close.png",
+  ];
+  assert.equal(png(v4).length, 14);
+  assert.ok(png(v2).length + png(v3).length + png(v4).length >= 28);
+  for (const asset of expectedV4) {
+    assert.ok(v4.includes(asset), `missing ${asset}`);
+    assert.match(storySource + page, new RegExp(asset.replace(".", "\\.")), `unreferenced ${asset}`);
+  }
+  assert.match(page, /scene\.arts/);
+  assert.match(page, /key=\{imageSrc\}/);
+  assert.ok(story.scenes.some(scene => scene.kind === "montage" && scene.arts?.length === 3));
+});
+
+test("U.S. departure continuity stays at airports, never a railway station", () => {
+  assert.match(storySource, /德黑兰国际机场/);
+  assert.match(storySource, /国际出发大厅/);
+  assert.match(storySource, /安检口/);
+  assert.doesNotMatch(storySource, /火车站|列车因此|确认了车次|art-v2\/departure-station/);
+});
+test("desktop and mobile controls remain available", () => {
+  assert.match(page, /handleSceneClick/);
+  assert.match(page, /event\.key===" "/);
   assert.match(css, /\.choices\{grid-template-columns:1fr/);
-  assert.match(css, /-webkit-overflow-scrolling:touch/);
-  assert.doesNotMatch(css, /\.top-actions button:first-child\{display:none/);
-});
-
-test("quick replay is locked to three choices and compares every answer", () => {
-  assert.equal(story.revisitScenes.length, 6);
-  assert.equal(story.revisitScenes.filter(scene => scene.kind === "choice").length, 3);
-  assert.match(page, /重访关键记忆/);
-  assert.match(page, /上轮选择/);
-  assert.match(page, /choice-comparison/);
-  assert.match(page, /item\.before\?\.label/);
-  assert.match(page, /item\.after\?\.label/);
-});
-
-test("sound system is opt-in, remembered and chapter-aware", () => {
-  for (const chapter of ["chapter1","chapter2","chapter3","chapter4","chapter5"]) {
-    assert.match(audio, new RegExp(chapter));
-  }
-  assert.match(page, /SOUND_KEY/);
-  assert.match(page, /localStorage\.setItem\(SOUND_KEY/);
-  assert.match(page, /声音关/);
-  assert.match(audio, /cue\(type: Cue\)/);
-  assert.match(audio, /stop\(\)/);
-});
-
-test("reduced motion and ritual ending remain available", () => {
+  assert.match(css, /min-width:44px;min-height:44px/);
   assert.match(css, /prefers-reduced-motion:reduce/);
-  assert.match(page, /ending-ritual/);
-  assert.match(page, /翻开最后一页/);
-  assert.ok(story.endings.mixed);
-  assert.equal(story.endings.mixed.title, "你记住了他们完整的矛盾");
+});
+
+test("launcher uses installed vinext directly and has package-manager fallbacks", () => {
+  assert.match(launcher, /node_modules\\\.bin\\vinext\.cmd/);
+  assert.match(launcher, /BUNDLED_ROOT/);
+  assert.match(launcher, /npm install --ignore-scripts/);
 });
