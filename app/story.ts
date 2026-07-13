@@ -13,12 +13,23 @@ export type ResonanceOption = {
   action?: string; confirmation: string; echo: string; farEcho?: string; endingFragment: string;
 };
 
+export type ChapterId = "chapter1" | "chapter2" | "chapter3" | "chapter4" | "chapter5";
+
 export type Scene = {
   id: string; kind: "chapter" | "narrative" | "montage" | "choice" | "echo" | "resonance" | "revisitEcho";
   chapter: string; chapterLabel: string; place: string; year?: string; speaker?: string;
   body?: string[]; beats?: string[]; art?: string; arts?: string[]; artFocus?: string; object?: string; canonicalPhoto?: string;
   progressive?: boolean; choiceId?: string; resonanceId?: string;
   choices?: MainOption[]; resonances?: ResonanceOption[];
+  /** 可在场景中完成的探索、操作或抉择；ID 与 progression catalog 保持一致。 */
+  interactionIds?: string[];
+  /** 本场景可选的本地模拟付费对话。 */
+  paidDialogueId?: string;
+  /** 章节结算与故事内奖励均挂在章节最后一个可玩场景。 */
+  chapterEnd?: ChapterId;
+  rewardId?: ChapterId;
+  /** 记忆剪辑室重访本幕时使用的短上下文。 */
+  revisitBody?: string[];
 };
 
 export const axisNames: Record<Axis, string> = {
@@ -303,6 +314,10 @@ export const scenes: Scene[] = [
     "artFocus": "table",
     "object": "photo",
     "resonanceId": "photo",
+    "interactionIds": ["photo-placement"],
+    "revisitBody": [
+      "门还没有响。照片仍在她手里；你可以重新决定过去怎样先抵达桌面。"
+    ],
     "resonances": [
       {
         "id": "front",
@@ -336,7 +351,7 @@ export const scenes: Scene[] = [
       }
     ],
     "body": [
-      "毕业那天冲洗了两张相同的照片：莱拉带走一张，阿拉什把另一张夹进诗集。十三年后，她先到了咖啡馆。门还没有响，她要把自己的那张照片放在哪里？"
+      "十三年后，莱拉先到了咖啡馆。桌上是一张她从圣何塞带来的毕业照。门还没有响，她要把照片放在哪里？"
     ]
   },
   {
@@ -359,8 +374,10 @@ export const scenes: Scene[] = [
     "place": "德黑兰大学 / 革命街",
     "art": "/art-v3/tehran-literature-class.png",
     "object": "ticket",
+    "interactionIds": ["projector-repair"],
     "body": [
-      "莱拉在文学课上追问诗里的那把钥匙，最后一排的阿拉什低头笑了一下。下课后，他把一张地下电影票夹进她的书里。晚上八点，她在旧书店地下室看见他拆开一台比他们年纪更大的放映机。停电时，电影只剩声音，他举着螺丝刀站得很近。"
+      "莱拉在文学课上追问诗里的那把钥匙，最后一排的阿拉什低头笑了一下。下课后，他把一张地下电影票夹进她的书里。晚上八点，她在旧书店地下室看见他拆开一台比他们年纪更大的放映机。",
+      "停电时，电影只剩声音。阿拉什把胶片头递给她：“别松手。”他举着螺丝刀靠近，莱拉看不见画面，只听得见两个人的呼吸。"
     ]
   },
   {
@@ -374,6 +391,10 @@ export const scenes: Scene[] = [
       "“看不见画面，故事也不会消失。”停电还没结束。莱拉先做了什么？"
     ],
     "choiceId": "choice-one",
+    "interactionIds": ["first-memory-action"],
+    "revisitBody": [
+      "旧胶片停在这一格。沿用旧动作，或重新决定她在黑暗里先做什么。"
+    ],
     "choices": [
       {
         "id": "poem",
@@ -429,7 +450,7 @@ export const scenes: Scene[] = [
     "artFocus": "close",
     "object": "poem",
     "body": [
-      "他们在屋顶分石榴，在雨里只带一把伞，也开始把“以后”说得很具体。"
+      "他们在屋顶分石榴，在雨里只带一把伞。风掀起伞沿时，莱拉抓住伞柄说：“别松手。”阿拉什没有问她说的是哪一件事。"
     ]
   },
   {
@@ -441,8 +462,12 @@ export const scenes: Scene[] = [
     "art": "/art-v5/graduation-photo-day.png",
     "canonicalPhoto": "/art-v5/canonical-graduation-photo.png",
     "object": "photo",
+    "paidDialogueId": "paid-photo-developing",
+    "chapterEnd": "chapter1",
+    "rewardId": "chapter1",
     "body": [
-      "摄影师让所有人看镜头，他们却隔着人群看向彼此，后来冲洗了两张相同的照片。阿拉什说，父亲中风后，维修铺和每周三次复健都离不开他；莱拉第一次明白，他口中的“留下”不只有理想，还有一串每天必须完成的钥匙、药单和账本。"
+      "摄影师问：“照片要冲两张吗？”莱拉说两张。快门按下时，所有人看着镜头，他们隔着人群看彼此。后来，他们冲洗了两张相同的照片。",
+      "阿拉什收好其中一张，又收起复健预约单。父亲中风后，维修铺、药单和账本都在等他；莱拉第一次明白，他口中的“留下”不只有理想。"
     ]
   },
   {
@@ -466,6 +491,7 @@ export const scenes: Scene[] = [
     "art": "/art-v4/student-publication-room.png",
     "object": "list",
     "progressive": true,
+    "interactionIds": ["publication-clues"],
     "body": [
       "刊物最初只写电影、诗和女性如何独自乘夜班车。后来，玛兹雅写下三名失踪学生的名字。集会只持续了十七分钟，校园的门便从里面锁上。",
       "玛兹雅当夜被带走，去向不明。门外，宿舍搜查的脚步正在靠近；桌上只留下她和另外二十七个人的名字。"
@@ -482,6 +508,10 @@ export const scenes: Scene[] = [
       "玛兹雅当夜被带走，去向不明。门把被人试了一下，搜查正在靠近；莱拉必须在脚步抵达前处理桌上的二十八个名字。"
     ],
     "choiceId": "choice-two",
+    "interactionIds": ["names-decision"],
+    "revisitBody": [
+      "门外脚步仍在靠近。纸上有二十八个名字；重剪只改变她怎样承担这一夜。"
+    ],
     "choices": [
       {
         "id": "reporter",
@@ -536,6 +566,7 @@ export const scenes: Scene[] = [
     "art": "/art-v3/discipline-committee.png",
     "artFocus": "desk",
     "object": "list",
+    "interactionIds": ["discipline-record"],
     "body": [
       "调查的人把刊物、电影字幕和读书会记录依次推到莱拉面前。玛兹雅六个月后获释，却再也没有回到大学；她后来在设拉子的一家儿童图书馆工作。"
     ]
@@ -547,8 +578,12 @@ export const scenes: Scene[] = [
     "chapterLabel": "第二章 · 知识变成证据",
     "place": "大学铁门外",
     "art": "/art-v4/university-gate-expulsion.png",
+    "paidDialogueId": "paid-lab-door",
+    "chapterEnd": "chapter2",
+    "rewardId": "chapter2",
     "body": [
-      "莱拉失去继续深造的资格，出版社撤回工作邀请。阿拉什隔着铁门说他们还可以等；她看见他胸前挂着实验室门卡，而自己的名字已经从名单上消失。世界没有结束。它只是变窄了。"
+      "莱拉失去继续深造的资格，出版社撤回工作邀请。实验楼的门合上前，阿拉什往前半步，又停住。",
+      "铁门外，莱拉看见他胸前还挂着实验室门卡，自己的名字却已从名单上消失。世界没有结束。它只是变窄了。"
     ]
   },
   {
@@ -571,6 +606,7 @@ export const scenes: Scene[] = [
     "place": "一段越来越具体的共同生活",
     "art": "/art-v3/tehran-rental-room.png",
     "object": "ticket",
+    "interactionIds": ["departure-packing"],
     "beats": [
       "莱拉白天翻译软件说明书，夜里给盗版电影配字幕。",
       "阿拉什替邻居修电脑，晚上再去父亲的维修铺对账。",
@@ -599,6 +635,7 @@ export const scenes: Scene[] = [
     "place": "圣何塞 / 德黑兰",
     "art": "/art-v4/video-call-kamran.png",
     "object": "email",
+    "paidDialogueId": "paid-marriage-truth",
     "body": [
       "姨妈介绍的卡姆兰没有展示汽车或泳池，只把镜头转向堆满纸箱的客厅。他在软件外包公司工作，周末却会拍湾区空荡的停车场，自己冲洗黑白照片。“我知道你不是为了爱找我。但如果你愿意认真对待这段婚姻，我可以帮你离开。”莱拉关掉通话，第二天主动给姨妈回了电话。她要求先看全部手续，也要求婚后继续工作。三周后，她把第一份表格寄了出去。"
     ]
@@ -614,6 +651,10 @@ export const scenes: Scene[] = [
       "手续已经推进，机票已经买好，卡姆兰的名字就在文件信封上。离开无法再被一句话取消；她仍要决定怎样把它告诉阿拉什。"
     ],
     "choiceId": "choice-three",
+    "interactionIds": ["last-night-truth"],
+    "revisitBody": [
+      "航班与手续已经确定。重剪不取消离开，只决定她把什么留在最后一夜。"
+    ],
     "choices": [
       {
         "id": "truth",
@@ -668,8 +709,12 @@ export const scenes: Scene[] = [
     "art": "/art-v4/airport-clock-goodbye.png",
     "artFocus": "airport",
     "object": "ticket",
+    "interactionIds": ["airport-goodbye"],
+    "chapterEnd": "chapter3",
+    "rewardId": "chapter3",
     "body": [
-      "莱拉每经过一块航班指示牌，都以为下一块后面会出现阿拉什。他确实来了，却只站在大厅时钟下面。"
+      "手机先亮起两个字：“我到了。”莱拉抬头，阿拉什站在大厅时钟下面。",
+      "他替她扣紧行李箱松开的搭扣，没有请她留下。登机广播开始念她的航班。"
     ]
   },
   {
@@ -696,8 +741,10 @@ export const scenes: Scene[] = [
       "/art-v4/maryam-telescope-rooftop.png",
       "/art-v3/san-jose-apartment.png"
     ],
+    "interactionIds": ["dual-city-objects"],
+    "paidDialogueId": "paid-two-cities-choice",
     "beats": [
-      "莱拉白天在软件公司检查波斯语界面；晚上卡姆兰冲洗停车场的黑白照片，莱拉替他给每张底片写波斯语编号，他则按她选的光线重新放大。",
+      "莱拉在圣何塞落地，给卡姆兰发：“我到了。”白天她检查波斯语界面；晚上卡姆兰冲洗停车场的黑白照片。她替底片写波斯语编号，他按她选的光线重新放大。",
       "阿拉什进入大学实验室。玛丽亚姆会圈出他实验表里的计算误差；他替她磨好望远镜松动的卡扣，两个人在屋顶记录流星，从不拿愿望下注。",
       "他们都结了婚，也都学会和一个没有参与旧日爱情的人分享笑话、坏脾气和真正感兴趣的事。邮件从一页变成一段，最后只剩一句：革命街上的旧书店关门了。"
     ]
@@ -712,6 +759,10 @@ export const scenes: Scene[] = [
     "artFocus": "screen",
     "object": "email",
     "resonanceId": "email",
+    "interactionIds": ["email-draft"],
+    "revisitBody": [
+      "光标仍在空白回复框里闪。重剪只改变她写下、又亲手删去的那一句。"
+    ],
     "resonances": [
       {
         "id": "basement",
@@ -756,6 +807,9 @@ export const scenes: Scene[] = [
     "place": "删除以后",
     "art": "/art-v4/email-delete-night.png",
     "object": "email",
+    "interactionIds": ["receipt-memory-combination"],
+    "chapterEnd": "chapter4",
+    "rewardId": "chapter4",
     "body": [
       "屏幕重新变成空白。卡姆兰把一张刚洗好的照片递给她：雾里的高速公路没有一辆车。“像不像你总说的革命街？”莱拉说不像，然后把照片贴到了冰箱上。"
     ]
@@ -782,6 +836,10 @@ export const scenes: Scene[] = [
     "artFocus": "table",
     "object": "book",
     "resonanceId": "gaze",
+    "interactionIds": ["reunion-gaze"],
+    "revisitBody": [
+      "门已经推开。你可以重新决定十三年的时间先落进哪一个取景框。"
+    ],
     "resonances": [
       {
         "id": "hands",
@@ -815,7 +873,8 @@ export const scenes: Scene[] = [
       }
     ],
     "body": [
-      "“你过得好吗？”——“还可以。你呢？”——“也还可以。”阿拉什把诗集放在桌上。莱拉先把视线停在哪里？"
+      "手机亮起：“我到了。”门被推开，雨水和热灯泡的气味一起进来。阿拉什先说你好。",
+      "“你过得好吗？”——“还可以。你呢？”——“也还可以。”他把诗集放在桌上。莱拉先把视线停在哪里？"
     ]
   },
   {
@@ -828,8 +887,11 @@ export const scenes: Scene[] = [
     "canonicalPhoto": "/art-v5/canonical-graduation-photo.png",
     "artFocus": "book",
     "object": "photo",
+    "interactionIds": ["photo-pairing"],
+    "paidDialogueId": "paid-reunion-hypothesis",
     "body": [
-      "阿拉什翻开诗集，里面是他保存的那张毕业照；桌上或莱拉包里，是她保存的另一张。两张照片来自同一次冲洗，边角却有了不同的磨损。他们谈起玛兹雅、卡姆兰的照片和玛丽亚姆记录的流星，没有人要求另一个人证明谁爱得更多。"
+      "阿拉什翻开诗集，里面是他保存的那张毕业照；桌上或莱拉包里，是她保存的另一张。两张照片来自同一次冲洗，边角却有了不同的磨损。",
+      "他用指节压住要合上的书页，她按住自己的照片。谁也没有再说“别松手”。他们谈起玛兹雅、卡姆兰的底片和玛丽亚姆记录的流星。"
     ]
   },
   {
@@ -841,6 +903,9 @@ export const scenes: Scene[] = [
     "art": "/art-v5/istanbul-crossroads-aged.png",
     "progressive": true,
     "speaker": "阿拉什与莱拉",
+    "interactionIds": ["final-crossroad"],
+    "chapterEnd": "chapter5",
+    "rewardId": "chapter5",
     "body": [
       "绿灯亮起。莱拉要去机场，阿拉什要回酒店。他们站在路口，没有拥抱。",
       "“如果当年我跟你走了呢？”莱拉看着他：“那我们会有另一个故事。”",

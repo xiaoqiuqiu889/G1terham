@@ -11,6 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "革命街没有尽头｜互动电影",
     description: "十三年后，一对曾约定离开德黑兰的恋人在伊斯坦布尔重逢。你将亲手保存、删去并交还这段往事。",
+    icons: { icon: "/favicon.svg" },
     openGraph: {
       title: "革命街没有尽头",
       description: "亲手保存、删去并交还一段发生在德黑兰的爱情往事。",
