@@ -375,8 +375,8 @@ function SelectionPanel({scene,selected,ready,previous,mode,onSelect,onCommit}:{
   </div>;
 }
 
-function ConfirmationCard({label,action,confirmation,ready,onCommit}:{label:string;action:string;confirmation:string;ready:boolean;onCommit:()=>void}){
-  return <div className={`choice-memory ${ready?"ready":""}`} role="status" aria-live="polite">
+function ConfirmationCard({label,action,confirmation,ready,inline=false,onCommit}:{label:string;action:string;confirmation:string;ready:boolean;inline?:boolean;onCommit:()=>void}){
+  return <div className={`choice-memory ${inline?"inline":""} ${ready?"ready":""}`} role="status" aria-live="polite">
     <span>{label}</span><strong>{action}</strong><small>{confirmation}</small>
     {ready&&<button onClick={onCommit}>带着这段记忆继续 <b>→</b></button>}
   </div>;
@@ -395,18 +395,21 @@ function PhotoInteraction({options,selected,ready,previous,mode,onSelect,onCommi
   return <div className={`photo-interaction ${selected?`result-${selected}`:""}`}>
     {!selected&&<p className="interaction-guide"><span>放置照片</span>拖到一个区域；触屏可先点照片，再点位置</p>}
     {isRevisitMode(mode)&&previous&&!selected&&<p className="previous-anchor">上轮镜头：{previous.label}</p>}
+    {selected&&selectedData&&<ConfirmationCard inline label="照片落下" action={resonanceAction(selectedData)} confirmation={selectedData.confirmation} ready={ready} onCommit={onCommit}/>}
     <div className="photo-worktable" aria-describedby="photo-instructions">
       <p id="photo-instructions" className="visually-hidden">先选择照片，再选择正面朝上、反面朝上或收回包里。也可以拖动照片到目标区域。</p>
       <button className={`movable-photo ${armed?"armed":""}`} type="button" draggable={!selected} disabled={Boolean(selected)} aria-pressed={armed} onClick={()=>setArmed(true)} onDragStart={event=>{setArmed(true);event.dataTransfer.setData("text/plain","photo")}}>
         <img src="/art-v5/canonical-graduation-photo.png" alt="德黑兰大学毕业合影，莱拉与阿拉什隔着同学望向彼此" draggable={false}/><span>{armed?"照片已拿起":"拿起照片"}</span>
       </button>
       <div className="photo-dropzones">
-        {options.map(option=><button key={option.id} type="button" className={`dropzone drop-${option.id}`} disabled={Boolean(selected)} aria-label={`${option.label}：${option.detail}`} onDragOver={event=>event.preventDefault()} onDrop={event=>{event.preventDefault();if(event.dataTransfer.getData("text/plain")==="photo")onSelect(option.id)}} onClick={()=>choose(option.id)}>
-          <strong>{option.label}</strong><small>{option.detail}</small>
-        </button>)}
+        {options.map(option=>{
+          const active=selected===option.id;
+          return <button key={option.id} type="button" className={`dropzone drop-${option.id} ${active?"selected":""}`} disabled={Boolean(selected)} aria-pressed={active} aria-label={`${option.label}：${option.detail}`} onDragOver={event=>event.preventDefault()} onDrop={event=>{event.preventDefault();if(event.dataTransfer.getData("text/plain")==="photo")onSelect(option.id)}} onClick={()=>choose(option.id)}>
+            <strong>{option.label}</strong><small>{option.detail}</small>
+          </button>;
+        })}
       </div>
     </div>
-    {selected&&selectedData&&<ConfirmationCard label="照片落下" action={resonanceAction(selectedData)} confirmation={selectedData.confirmation} ready={ready} onCommit={onCommit}/>}
   </div>;
 }
 
@@ -438,12 +441,12 @@ function EmailInteraction({options,selected,ready,previous,mode,onSelect,onCommi
       {!deleted?<button className="hold-delete" onPointerDown={event=>{event.currentTarget.setPointerCapture(event.pointerId);startDelete()}} onPointerUp={stopDelete} onPointerCancel={stopDelete} onPointerLeave={stopDelete} onKeyDown={event=>{if(event.key===" "||event.key==="Enter"){event.preventDefault();startDelete()}}} onKeyUp={event=>{if(event.key===" "||event.key==="Enter")stopDelete()}}>按住删除这句话 <span aria-hidden="true">⌫</span></button>
       :<p className="deleted-state">光标回到空白处。句子没有寄出。</p>}
     </div>}
-    {selected&&selectedData&&deleted&&<ConfirmationCard label="草稿删除" action={resonanceAction(selectedData)} confirmation={selectedData.confirmation} ready={ready} onCommit={onCommit}/>}
+    {selected&&selectedData&&deleted&&<ConfirmationCard inline label="草稿删除" action={resonanceAction(selectedData)} confirmation={selectedData.confirmation} ready={ready} onCommit={onCommit}/>}
   </div>;
 }
 
 function GazeVisualLayer({options,selected,focus,onFocus,onSelect}:{options:ResonanceOption[];selected:string|null;focus:string|null;onFocus:(id:string|null)=>void;onSelect:(id:string)=>void}){
-  return <div className={`gaze-hotspots focus-${focus||"none"}`} aria-label="选择莱拉先看见的画面">
+  return <div className={`gaze-hotspots focus-${focus||"none"} ${selected?"has-selection":""}`} aria-label="选择莱拉先看见的画面">
     <p className="visually-hidden">可选择手与白发、诗集、时钟与机场方向。</p>
     {options.map(option=><button key={option.id} className={`gaze-hotspot hotspot-${option.id} ${selected===option.id?"selected":""}`} disabled={Boolean(selected)} onPointerEnter={()=>onFocus(option.id)} onPointerLeave={()=>onFocus(selected)} onFocus={()=>onFocus(option.id)} onBlur={()=>onFocus(selected)} onClick={()=>{onFocus(option.id);onSelect(option.id)}} aria-label={`${option.label}：${option.detail}`}><span>{option.label}</span></button>)}
   </div>;
@@ -454,7 +457,7 @@ function GazeInteraction({options,selected,ready,previous,mode,onFocus,onSelect,
   return <div className="gaze-interaction">
     {!selected&&<><p className="interaction-guide"><span>移动视线</span>触碰画面中的三个取景框</p>{isRevisitMode(mode)&&previous&&<p className="previous-anchor">上轮镜头：{previous.label}</p>}
       <details className="a11y-fallback"><summary>使用文字按钮选择</summary><div>{options.map(option=><button key={option.id} onFocus={()=>onFocus(option.id)} onMouseEnter={()=>onFocus(option.id)} onClick={()=>onSelect(option.id)}>{option.label}</button>)}</div></details></>}
-    {selected&&selectedData&&<ConfirmationCard label="视线停住" action={resonanceAction(selectedData)} confirmation={selectedData.confirmation} ready={ready} onCommit={onCommit}/>}
+    {selected&&selectedData&&<ConfirmationCard inline label="视线停住" action={resonanceAction(selectedData)} confirmation={selectedData.confirmation} ready={ready} onCommit={onCommit}/>}
   </div>;
 }
 

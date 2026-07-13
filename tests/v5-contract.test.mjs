@@ -74,6 +74,20 @@ test("photo, email and gaze are three distinct physical interaction components",
   assert.match(pageSource, /时钟与机场方向/);
 });
 
+test("physical confirmation and gaze layers keep their own layout space", () => {
+  assert.match(pageSource, /inline\??:boolean/);
+  assert.match(pageSource, /<ConfirmationCard inline label="照片落下"/);
+  assert.match(pageSource, /<ConfirmationCard inline label="视线停住"/);
+  assert.match(pageSource, /aria-pressed=\{active\}/);
+  assert.match(cssSource, /\.choice-memory\.inline\{position:relative;inset:auto/);
+  assert.match(cssSource, /\.dropzone:not\(\.selected\)/);
+  assert.match(cssSource, /\.dropzone\.selected/);
+  assert.match(cssSource, /\.physical-gaze \.scene-copy\{z-index:7;left:auto/);
+  assert.match(cssSource, /\.physical-gaze \.dialogue:first-child/);
+  assert.match(cssSource, /\.gaze-hotspots\.has-selection \.gaze-hotspot:not\(\.selected\)/);
+  assert.doesNotMatch(cssSource, /result-bag \.movable-photo\{transform:translateX\(calc\(300%/);
+});
+
 test("main choices separate action, confirmation and future/ending echoes", () => {
   const options = Object.values(story.memoryContracts).flat();
   assert.equal(options.length, 9);
