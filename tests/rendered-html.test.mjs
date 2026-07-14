@@ -1,4 +1,4 @@
-﻿import assert from "node:assert/strict";
+import assert from "node:assert/strict";
 import test from "node:test";
 
 async function render() {
@@ -12,20 +12,23 @@ async function render() {
   );
 }
 
-test("server renders the interactive film title screen", async () => {
+test("server renders the current memory-editing title screen", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
   const html = await response.text();
   assert.match(html, /<title>革命街没有尽头/);
-  assert.match(html, /一部关于选择与记忆的互动电影/);
-  assert.match(html, /进入故事/);
+  assert.match(html, /互动叙事 · 记忆剪辑/);
+  assert.match(html, /她被处分、离开、结婚与重逢已经发生/);
+  assert.match(html, /有声进入/);
+  assert.match(html, /静音进入/);
   assert.match(html, /自动保存/);
+  assert.doesNotMatch(html, /记忆剪辑 V[0-9]|选择不能改变历史/);
 });
 
-test("ships accessible controls and no starter metadata", async () => {
+test("ships Chinese accessibility metadata and no starter content", async () => {
   const response = await render();
   const html = await response.text();
-  assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
   assert.match(html, /lang="zh-CN"/);
+  assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 });

@@ -1,297 +1,1371 @@
-﻿import type { EndingKey, Tendency } from "./game-logic";
+import type { Axis, EndingKey } from "./game-logic";
 
-export type ChoiceOption = {
-  id: string;
-  label: string;
-  detail: string;
-  tendency: Tendency;
-  memory: string;
-  motif: string;
-  confirmation: string;
+export type MainOption = {
+  id: string; label: string; detail: string; axis: Axis; motif: string; sound: string;
+  /** 当场发生的动作。旧场景副本可能缺省，渲染时可回退到 memory。 */
+  action?: string; memory: string; confirmation: string; nearEcho: string; farEcho: string;
+  endingFragment: string; revisitEcho: string;
 };
+
+export type ResonanceOption = {
+  id: string; label: string; detail: string; motif: string; sound: string;
+  /** 共鸣动作把操作、感官确认、远期回响与结尾镜头分开保存。 */
+  action?: string; confirmation: string; echo: string; farEcho?: string; endingFragment: string;
+};
+
+export type ChapterId = "chapter1" | "chapter2" | "chapter3" | "chapter4" | "chapter5";
 
 export type Scene = {
-  id: string;
-  kind: "chapter" | "narrative" | "montage" | "choice";
-  chapter: string;
-  chapterLabel: string;
-  place: string;
-  year?: string;
-  speaker?: string;
-  body?: string[];
-  beats?: string[];
-  art?: string;
-  choiceId?: string;
-  choices?: ChoiceOption[];
-  echoFrom?: string;
+  id: string; kind: "chapter" | "narrative" | "montage" | "choice" | "echo" | "resonance" | "revisitEcho";
+  chapter: string; chapterLabel: string; place: string; year?: string; speaker?: string;
+  body?: string[]; beats?: string[]; art?: string; arts?: string[]; artFocus?: string; object?: string; canonicalPhoto?: string;
+  progressive?: boolean; choiceId?: string; resonanceId?: string;
+  choices?: MainOption[]; resonances?: ResonanceOption[];
+  /** 可在场景中完成的探索、操作或抉择；ID 与 progression catalog 保持一致。 */
+  interactionIds?: string[];
+  /** 本场景可选的本地模拟付费对话。 */
+  paidDialogueId?: string;
+  /** 章节结算与故事内奖励均挂在章节最后一个可玩场景。 */
+  chapterEnd?: ChapterId;
+  rewardId?: ChapterId;
+  /** 记忆剪辑室重访本幕时使用的短上下文。 */
+  revisitBody?: string[];
 };
 
-export const tendencyNames: Record<Tendency, string> = {
-  idealism: "理想",
-  love: "爱情",
-  survival: "生存",
+export const axisNames: Record<Axis, string> = {
+  "speak": "说出",
+  "keep": "留住",
+  "survive": "活下去"
 };
-
-const choiceOne: ChoiceOption[] = [
-  { id:"kiss", label:"主动吻他", detail:"让这个夜晚不再需要语言", tendency:"love", motif:"照片", memory:"停电的夜里，她先吻了他。", confirmation:"她没有等电影重新亮起。" },
-  { id:"poem", label:"送他一首诗", detail:"把说不出口的话留在纸上", tendency:"idealism", motif:"诗页", memory:"她把诗留给他，相信文字比黑暗长久。", confirmation:"那张纸后来被折了四次。" },
-  { id:"leave", label:"假装若无其事地离开", detail:"把心动收进一个安全的秘密", tendency:"survival", motif:"车票", memory:"她先走下楼梯，却整夜没有睡着。", confirmation:"脚步很稳，心跳不是。" },
-];
-
-const choiceTwo: ChoiceOption[] = [
-  { id:"burn", label:"烧毁名单", detail:"先保护自己和仍在校园的人", tendency:"survival", motif:"灰烬", memory:"她看着名字变成灰，记住了每一笔。", confirmation:"火只用了二十秒。" },
-  { id:"reporter", label:"交给外国记者", detail:"让世界知道谁被带走了", tendency:"idealism", motif:"铅字", memory:"她把名单递出墙外，也把危险留给了朋友。", confirmation:"纸离开她的手时，比想象中更轻。" },
-  { id:"book", label:"藏进诗集", detail:"让诗替他们保存名字", tendency:"love", motif:"诗页", memory:"她把名单藏进他们一起读过的诗集。", confirmation:"书脊合上，名字仍在里面呼吸。" },
-];
-
-const choiceThree: ChoiceOption[] = [
-  { id:"truth", label:"告诉他全部真相", detail:"包括婚姻，包括害怕，也包括爱", tendency:"love", motif:"照片", memory:"她把最难听的真话留给了最爱的人。", confirmation:"真话没有使夜晚更轻。" },
-  { id:"conceal", label:"只说自己要离开", detail:"不让婚姻成为最后的伤口", tendency:"survival", motif:"车票", memory:"她省略了婚姻，保住最后一点体面。", confirmation:"她把最锋利的那部分留给自己。" },
-  { id:"escape", label:"请求他带自己逃走", detail:"再给共同未来最后一次机会", tendency:"idealism", motif:"地图", memory:"她最后问了一次，而他的沉默就是回答。", confirmation:"城市很大，却没有一条他们共同的出口。" },
-];
-
+export const axisExplanations: Record<Axis, string> = {
+  "speak": "把爱、责任和真相说出口——它后来被称作理想。",
+  "keep": "让一个吻、一本书和共同未来留在手里——它后来被称作爱情。",
+  "survive": "先保护自己，再承担离开后的生活——它后来被称作生存。"
+};
+export const memoryContracts: Record<string, MainOption[]> = {
+  "choice-one": [
+    {
+      "id": "poem",
+      "label": "送他一首诗",
+      "detail": "让纸替她说出还不敢承认的话",
+      "axis": "speak",
+      "motif": "折诗",
+      "sound": "paper",
+      "action": "她撕下诗页，沿原有的折痕折了四次，放进阿拉什的工具盒。",
+      "memory": "她把诗留给他，相信文字能穿过停电后的黑暗。",
+      "confirmation": "纸被折了四次，刚好能藏进他的工具盒。",
+      "nearEcho": "阿拉什后来每次修放映机，都先把那张折诗从工具盒里取出来，放到不会沾上机油的地方。",
+      "farEcho": "十三年后，他没有背诵诗句，只说自己一直记得纸被折过的方向。",
+      "endingFragment": "你让那首没有署名的诗留下。它没有替他们找到出口，却让一句未说完的话抵达了另一个人。",
+      "revisitEcho": "旧工具盒里，多了一张沿折痕发白的诗页。"
+    },
+    {
+      "id": "kiss",
+      "label": "主动吻他",
+      "detail": "在电影重新亮起前先靠近一步",
+      "axis": "keep",
+      "motif": "照片",
+      "sound": "photo",
+      "action": "放映机停下以后，她先向前一步，吻了阿拉什。",
+      "memory": "停电的夜里，她先吻了他。",
+      "confirmation": "电影还没有恢复，他们已经有了一段只属于黑暗的画面。",
+      "nearEcho": "此后每次停电，阿拉什都会下意识伸手找她；莱拉总比他早半步碰到那只手。",
+      "farEcho": "咖啡馆的灯闪了一下，他们都抬起头，却没有再靠近。",
+      "endingFragment": "你留住了停电时的那个吻。它没有要求后来的人生作证，只证明他们曾经毫不犹豫地靠近。",
+      "revisitEcho": "黑暗里，两只手再次先于语言找到彼此。"
+    },
+    {
+      "id": "leave",
+      "label": "先行离开",
+      "detail": "把心动收好，给自己一个夜晚",
+      "axis": "survive",
+      "motif": "电影票",
+      "sound": "ticket",
+      "action": "她把电影票收进口袋，先沿楼梯走回街上。",
+      "memory": "她先走下楼梯，脚步很稳，心跳不是。",
+      "confirmation": "第二天，她仍比约定早到了十分钟。",
+      "nearEcho": "那以后莱拉总会提前确认出口，也总会在确认安全后第一个回来。",
+      "farEcho": "重逢时，她先看见咖啡馆的后门；确认出口以后，才允许自己认真看他。",
+      "endingFragment": "你保留了她先离开的能力。那不是拒绝，而是她很早就学会的事：勇气有时需要一条看得见的退路。",
+      "revisitEcho": "她记住了出口，也记住了自己第二天仍然回来。"
+    }
+  ],
+  "choice-two": [
+    {
+      "id": "reporter",
+      "label": "只承认自己",
+      "detail": "承认自己参与刊物，但不提供任何同伴姓名",
+      "axis": "speak",
+      "motif": "供词",
+      "sound": "paper",
+      "action": "她承认自己参与编辑，把责任只写在自己名下。",
+      "memory": "她只说自己的事，不替任何人作证。",
+      "confirmation": "记录员追问三次，她三次重复同一句。",
+      "nearEcho": "纪律委员会拿着已有材料追问同伴，莱拉只承认自己的文章。处分照样落下。",
+      "farEcho": "阿拉什翻到夹着处分通知的书页，仍记得她当年把每一句供词的主语都写成“我”。",
+      "endingFragment": "你让她只承认自己的部分。她没有替同伴作证，也没有因此逃过处分。",
+      "revisitEcho": "调查者换了三种问法，她只用“我”回答。"
+    },
+    {
+      "id": "book",
+      "label": "拒绝告发",
+      "detail": "一个名字也不说，让沉默保护同伴",
+      "axis": "keep",
+      "motif": "诗集",
+      "sound": "paper",
+      "action": "她合上问话记录，一个同伴的名字也没有说。",
+      "memory": "她拒绝指认任何同伴，把沉默留在记录里。",
+      "confirmation": "房间里只剩钟表声。",
+      "nearEcho": "问话记录写着“拒绝回答”。学校把沉默也算成了证据。",
+      "farEcho": "十三年后，诗集里仍夹着那张处分通知；“拒绝回答”四个字已经发黄。",
+      "endingFragment": "你让她拒绝告发。沉默没有撤销处分，却把同伴的名字留在她自己的记忆里。",
+      "revisitEcho": "记录停在空白处，处分通知后来被夹进诗集。"
+    },
+    {
+      "id": "burn",
+      "label": "说出名字",
+      "detail": "提供调查者追问的姓名，换取减轻处理",
+      "axis": "survive",
+      "motif": "笔迹",
+      "sound": "ash",
+      "action": "她说出三个名字；调查者早已在材料上把他们圈了出来。",
+      "memory": "她说出了三个名字，希望学校减轻处理。",
+      "confirmation": "笔尖停下时，她没有抬头。",
+      "nearEcho": "处理没有真正减轻。她第一次知道，妥协也可能什么都换不来。",
+      "farEcho": "诗集里夹着处分通知，供词栏有三个被划过的名字。阿拉什没有替她解释。",
+      "endingFragment": "你让她说出三个调查者早已圈出的名字。处理没有减轻，这个动作也没有被结局原谅或定罪。",
+      "revisitEcho": "三个名字落在纸上，处理决定仍然没有变。"
+    }
+  ],
+  "choice-three": [
+    {
+      "id": "truth",
+      "label": "把一切一次说完",
+      "detail": "把卡姆兰、婚姻、机票、害怕和仍然爱他一次说完",
+      "axis": "speak",
+      "motif": "未寄出的信",
+      "sound": "paper",
+      "action": "她说出卡姆兰的名字，也说出婚姻、机票、害怕和仍然爱他。",
+      "memory": "她把最难听的真话留给了最爱的人。",
+      "confirmation": "真话没有使夜晚更轻，但没有留下猜测。",
+      "nearEcho": "国际出发大厅里，阿拉什没有追问卡姆兰。他只是把她行李箱松开的搭扣重新扣好，然后退回大厅时钟下面。",
+      "farEcho": "绿灯前，阿拉什没有再问卡姆兰是谁；那个名字早已在最后一夜说完。",
+      "endingFragment": "你让婚姻、恐惧和爱情同时被说出。真相没有挽留任何人，却使他们不必用余生猜测那场离开的名字。",
+      "revisitEcho": "出发大厅的沉默里，不再藏着一个未被说出的名字。"
+    },
+    {
+      "id": "escape",
+      "label": "再问一条共同的路",
+      "detail": "先说清卡姆兰，再问阿拉什是否愿意一起寻找另一条路",
+      "axis": "keep",
+      "motif": "两张车票",
+      "sound": "ticket",
+      "action": "她先说清卡姆兰，再问阿拉什愿不愿意和她寻找另一条离开的路。",
+      "memory": "她最后问了一次，而他的沉默就是回答。",
+      "confirmation": "城市很大，却没有一条他们共同的出口。",
+      "nearEcho": "阿拉什赶到机场时仍带着两张旧公交票，像是误拿了某个本来可以成真的未来。",
+      "farEcho": "绿灯前，阿拉什把手从外套口袋里抽出来；那两张旧公交票仍夹在诗集末页。",
+      "endingFragment": "你让她最后一次伸手要一个共同未来。阿拉什没有接住，但那次请求使他们都无法把分离伪装成误会。",
+      "revisitEcho": "诗集末页，多了两张没能把他们带到同一个出口的公交票。"
+    },
+    {
+      "id": "conceal",
+      "label": "只说航班已经确定",
+      "detail": "只说航班已经确定，把卡姆兰的名字留在信封里",
+      "axis": "survive",
+      "motif": "行李牌",
+      "sound": "ticket",
+      "action": "她只说航班已经确定，把写着卡姆兰名字的文件留在信封里。",
+      "memory": "她省略了婚姻，把最锋利的部分留给自己。",
+      "confirmation": "她先确认了航班和登机口，才允许自己哭。",
+      "nearEcho": "安检口前阿拉什问还有没有别的事。莱拉握紧行李牌，说没有。登机广播仍准时响起。",
+      "farEcho": "路口，她先说卡姆兰正在等她；十三年前留在信封里的名字终于抵达街上。",
+      "endingFragment": "你让她保留了最后一点能继续行动的体面。隐瞒留下伤口，也让她在那个早晨没有失去离开的力气。",
+      "revisitEcho": "行李牌上的目的地清楚，告别里的原因仍然空白。"
+    }
+  ]
+};
+export const resonanceContracts: Record<string, ResonanceOption[]> = {
+  "photo": [
+    {
+      "id": "front",
+      "label": "正面朝上",
+      "detail": "让照片里两个人继续看着彼此",
+      "motif": "照片正面",
+      "sound": "photo",
+      "action": "她把毕业照正面朝上，放进糖罐旁的空位。",
+      "echo": "她把自己的那张毕业照正面朝上，压在糖罐旁。",
+      "farEcho": "阿拉什翻开诗集时，里面那张同版毕业照也正面朝上；两张照片隔着桌面再次对齐。",
+      "endingFragment": "桌上那张照片始终正面朝上；年轻的他们替现在的两个人完成了最后一次对视。",
+      "confirmation": "糖罐旁留出一个刚好够照片的位置。"
+    },
+    {
+      "id": "back",
+      "label": "反面朝上",
+      "detail": "只留下背面的日期和地点",
+      "motif": "照片背面",
+      "sound": "photo",
+      "action": "她把毕业照翻到背面，让日期朝向灯光。",
+      "echo": "她把照片翻到背面，只露出毕业日期和一句已经褪色的手写地点。",
+      "farEcho": "诗集里的同版毕业照露出正面，桌上那张仍只用背面的日期回答它。",
+      "endingFragment": "桌上的照片一直反扣着。结尾没有脸，只有日期证明那一天确实发生过。",
+      "confirmation": "纸面擦过桌布，只剩日期朝向灯光。"
+    },
+    {
+      "id": "bag",
+      "label": "暂时收回包里",
+      "detail": "先不让过去替今天开口",
+      "motif": "帆布包",
+      "sound": "photo",
+      "action": "她把毕业照滑回帆布包，拉上拉链。",
+      "echo": "她把照片收回包里，决定先用现在的眼睛见他。",
+      "farEcho": "诗集里的同版毕业照被摊开；莱拉没有从包里取出自己的那张，只隔着帆布摸到硬边。",
+      "endingFragment": "直到离开咖啡馆，她才从包里摸到照片的硬边；过去没有被展示，也没有被丢弃。",
+      "confirmation": "帆布包的拉链合上，照片留在离她最近的暗处。"
+    }
+  ],
+  "email": [
+    {
+      "id": "basement",
+      "label": "“我记得地下室的味道。”",
+      "detail": "写下最具体的那一晚",
+      "motif": "删除键",
+      "sound": "email",
+      "action": "她在邮件里写下地下室的味道，又点下删除，把整句清空。",
+      "echo": "光标停在“地下室的味道”后面。她点下删除，输入框重新变空。",
+      "farEcho": "门被推开时，雨水和热灯泡的气味一起进来；她先认出那个被删除过的夜晚。",
+      "endingFragment": "她曾写下地下室潮湿的纸张和热灯泡气味，后来删掉了；重逢时，那气味仍先于对白回来。",
+      "confirmation": "点下删除前，光标又闪了两次。"
+    },
+    {
+      "id": "book",
+      "label": "“那本诗集还在吗？”",
+      "detail": "问一个她其实害怕知道答案的问题",
+      "motif": "邮件草稿",
+      "sound": "email",
+      "action": "她在邮件里问诗集是否还在，停了一分钟，再点下删除。",
+      "echo": "问题写完以后，她没有按发送。她不确定自己想问的是书，还是书里仍被保管的那些人。",
+      "farEcho": "阿拉什推门时把旧诗集抱在臂弯里，替一封没有寄出的邮件带来了答案。",
+      "endingFragment": "她曾在邮件里问诗集是否还在，又删掉了。十三年后，阿拉什用把书放到桌上的动作回答了她。",
+      "confirmation": "她在问号后停了一分钟。"
+    },
+    {
+      "id": "well",
+      "label": "“我现在过得很好。”",
+      "detail": "写下一句既真实又不完整的话",
+      "motif": "未发送",
+      "sound": "email",
+      "action": "她写下自己过得很好，看完一遍，再点下删除。",
+      "echo": "她看着“很好”两个字，承认生活确实已经有了重量，然后删掉整句。",
+      "farEcho": "他确实来了，却只站在时钟下面；她没有再用一句“很好”概括十三年。",
+      "endingFragment": "她曾想告诉他自己过得很好。那不是炫耀，也不是谎言；只是完整生活无法被压进一封旧情人的邮件。",
+      "confirmation": "这句话是真的，只是不完整。"
+    }
+  ],
+  "gaze": [
+    {
+      "id": "hands",
+      "label": "先看他的白发与手",
+      "detail": "辨认时间留在一个人身上的地方",
+      "motif": "手与白发",
+      "sound": "photo",
+      "action": "她把焦点移到他端茶的手与鬓角的白发。",
+      "echo": "她先认出他端茶时仍会用拇指摩挲杯沿，只是手背多了细纹。",
+      "farEcho": "最后的焦点停在他放开茶杯的手上，随后才让人群重新清晰。",
+      "endingFragment": "最后的镜头停在他放开茶杯的手上。亲密感没有消失，只是失去了继续使用的权利。",
+      "confirmation": "十三年先落在指节和鬓角。"
+    },
+    {
+      "id": "book",
+      "label": "先看发黄的诗集",
+      "detail": "确认那些被保管的纸页",
+      "motif": "发黄书页",
+      "sound": "paper",
+      "action": "她把焦点移到诗集开裂的书脊与发黄的纸页。",
+      "echo": "她先看见诗集书脊上的裂口，才抬头看阿拉什。",
+      "farEcho": "最后的焦点越过人群，落在他臂弯里的旧诗集上。",
+      "endingFragment": "最后的镜头越过人群，停在他臂弯里的旧诗集上。被保存不等于能回去。",
+      "confirmation": "书页的颜色比记忆更诚实。"
+    },
+    {
+      "id": "clock",
+      "label": "先看时钟与机场方向",
+      "detail": "记住现实仍在等待",
+      "motif": "站钟",
+      "sound": "ticket",
+      "action": "她把焦点移到站钟与指向机场的路牌。",
+      "echo": "她先确认去机场还有四十分钟，也看见阿拉什手机上来自家人的未接来电。",
+      "farEcho": "最后的焦点停在绿灯和机场方向牌上，现实仍按自己的时刻表向前。",
+      "endingFragment": "最后的镜头停在绿灯和机场方向牌上。两个人都已经有人在现实生活里等待。",
+      "confirmation": "四十分钟后，机场班车不会等她。"
+    }
+  ]
+};
 export const scenes: Scene[] = [
   {
-    id:"prologue", kind:"narrative", chapter:"prologue", chapterLabel:"序章 · 没有寄出的照片", place:"伊斯坦布尔 · 卡拉柯伊", year:"十三年后",
-    art:"/art-v2/istanbul-cafe.png",
-    body:[
-      "莱拉提前二十分钟到了。她把德黑兰大学的毕业照压在糖罐下面，照片里的她和阿拉什站在人群两端，却都没有看镜头。",
-      "门铃响了一声。阿拉什走进咖啡馆，先看见她，又看见桌上的照片。十三年里预演过的句子忽然全部失效。",
-      "他们最后只说了一句：你好。"
+    "id": "photo",
+    "kind": "resonance",
+    "chapter": "prologue",
+    "chapterLabel": "序章 · 一张照片",
+    "place": "伊斯坦布尔 · 十三年后",
+    "year": "十三年后",
+    "art": "/art-v5/istanbul-cafe-photo-close.png",
+    "canonicalPhoto": "/art-v5/canonical-graduation-photo.png",
+    "artFocus": "table",
+    "object": "photo",
+    "resonanceId": "photo",
+    "interactionIds": ["photo-placement"],
+    "revisitBody": [
+      "门还没有响。照片仍在她手里；你可以重新决定过去怎样先抵达桌面。"
+    ],
+    "resonances": [
+      {
+        "id": "front",
+        "label": "正面朝上",
+        "detail": "让照片里两个人继续看着彼此",
+        "motif": "照片正面",
+        "sound": "photo",
+        "echo": "她把自己的那张毕业照正面朝上，压在糖罐旁。",
+        "endingFragment": "桌上那张照片始终正面朝上；年轻的他们替现在的两个人完成了最后一次对视。",
+        "confirmation": "糖罐旁留出一个刚好够照片的位置。"
+      },
+      {
+        "id": "back",
+        "label": "反面朝上",
+        "detail": "只留下背面的日期和地点",
+        "motif": "照片背面",
+        "sound": "photo",
+        "echo": "她把照片翻到背面，只露出毕业日期和一句已经褪色的手写地点。",
+        "endingFragment": "桌上的照片一直反扣着。结尾没有脸，只有日期证明那一天确实发生过。",
+        "confirmation": "纸面擦过桌布，只剩日期朝向灯光。"
+      },
+      {
+        "id": "bag",
+        "label": "暂时收回包里",
+        "detail": "先不让过去替今天开口",
+        "motif": "帆布包",
+        "sound": "photo",
+        "echo": "她把照片收回包里，决定先用现在的眼睛见他。",
+        "endingFragment": "直到离开咖啡馆，她才从包里摸到照片的硬边；过去没有被展示，也没有被丢弃。",
+        "confirmation": "帆布包的拉链合上，照片留在离她最近的暗处。"
+      }
+    ],
+    "body": [
+      "十三年后，莱拉先到了咖啡馆。桌上是一张她从圣何塞带来的毕业照。门还没有响，她要把照片放在哪里？"
     ]
   },
   {
-    id:"chapter-one", kind:"chapter", chapter:"chapter1", chapterLabel:"第一章", place:"革命街上的恋人", year:"德黑兰 · 2008", art:"/art-v2/street-rain.png",
-    body:["有些故事开始时，并不知道自己将成为回忆。"]
-  },
-  {
-    id:"campus", kind:"narrative", chapter:"chapter1", chapterLabel:"第一章 · 革命街上的恋人", place:"德黑兰大学 · 文学课",
-    art:"/art-v2/street-rain.png", speaker:"莱拉",
-    body:[
-      "教授说，那首诗里的门象征服从。莱拉举起手：如果门只能这样解释，诗人为什么还要写一把钥匙？",
-      "教室安静下来。最后一排的男生低头笑了一下。他叫阿拉什，电子工程系，来旁听只是为了躲一节电路实验。",
-      "下课时，他追到走廊，把一张没有地址的电影票夹进她的书里。"
+    "id": "chapter-one",
+    "kind": "chapter",
+    "chapter": "chapter1",
+    "chapterLabel": "第一章",
+    "place": "革命街上的恋人",
+    "year": "德黑兰 · 2008",
+    "art": "/art-v4/university-gate-autumn.png",
+    "body": [
+      "有些故事开始时，并不知道自己将成为回忆。"
     ]
   },
   {
-    id:"ticket", kind:"narrative", chapter:"chapter1", chapterLabel:"第一章 · 革命街上的恋人", place:"文学系走廊", art:"/art-v2/basement-cinema.png", speaker:"阿拉什",
-    body:[
-      "“今晚八点，革命街旧书店地下室。别告诉不爱电影的人。”",
-      "“如果我也不爱呢？”",
-      "“那你可以来看一群人如何假装自己不害怕。”"
+    "id": "campus",
+    "kind": "narrative",
+    "chapter": "chapter1",
+    "chapterLabel": "第一章 · 革命街上的恋人",
+    "place": "德黑兰大学 / 革命街",
+    "art": "/art-v3/tehran-literature-class.png",
+    "object": "ticket",
+    "interactionIds": ["projector-repair"],
+    "body": [
+      "莱拉在文学课上追问诗里的那把钥匙，最后一排的阿拉什低头笑了一下。下课后，他把一张地下电影票夹进她的书里。晚上八点，她在旧书店地下室看见他拆开一台比他们年纪更大的放映机。",
+      "停电时，电影只剩声音。阿拉什把胶片头递给她：“别松手。”他举着螺丝刀靠近，莱拉看不见画面，只听得见两个人的呼吸。"
     ]
   },
   {
-    id:"screening", kind:"narrative", chapter:"chapter1", chapterLabel:"第一章 · 革命街上的恋人", place:"旧书店地下室", art:"/art-v2/basement-cinema.png",
-    body:[
-      "莱拉负责翻译字幕，阿拉什负责让一台比他们年纪更大的放映机继续工作。银幕上，一个女人正在离开故乡，波斯语字幕却慢了整整三秒。",
-      "观众笑起来。莱拉俯身改时间轴，阿拉什用螺丝刀敲了敲机器。就在他们肩膀碰到一起时，整条街停了电。",
-      "黑暗里，电影的声音还在继续。"
+    "id": "choice-one",
+    "kind": "choice",
+    "chapter": "chapter1",
+    "chapterLabel": "第一次保存",
+    "place": "停电后的地下室",
+    "art": "/art-v4/underground-projector-close.png",
+    "body": [
+      "灯泡重新亮起，字幕条却上下颠倒。莱拉踩上木椅念反字，阿拉什扶住椅背。她把“我们迟到了”译成“你迟到了”；他看了一眼手表：“八点零三分，我已经在这儿。”",
+      "阿拉什在电影票背面写下“20:03”，用沾机油的拇指按在旁边。莱拉把半颗石榴放进空片盒，叫它维修费。片盒合上时，灯泡又闪了一下，地下室重新暗下来。",
+      "“看不见画面，故事也不会消失。”停电还没结束。莱拉先做了什么？"
+    ],
+    "choiceId": "choice-one",
+    "interactionIds": ["first-memory-action"],
+    "revisitBody": [
+      "旧胶片停在这一格。沿用旧动作，或重新决定她在黑暗里先做什么。"
+    ],
+    "choices": [
+      {
+        "id": "poem",
+        "label": "送他一首诗",
+        "detail": "让纸替她说出还不敢承认的话",
+        "axis": "speak",
+        "motif": "折诗",
+        "sound": "paper",
+        "memory": "她把诗留给他，相信文字能穿过停电后的黑暗。",
+        "confirmation": "纸被折了四次，刚好能藏进他的工具盒。",
+        "nearEcho": "阿拉什后来每次修放映机，都先把那张折诗从工具盒里取出来，放到不会沾上机油的地方。",
+        "farEcho": "十三年后，他没有背诵诗句，只说自己一直记得纸被折过的方向。",
+        "endingFragment": "你让那首没有署名的诗留下。它没有替他们找到出口，却让一句未说完的话抵达了另一个人。",
+        "revisitEcho": "旧工具盒里，多了一张沿折痕发白的诗页。"
+      },
+      {
+        "id": "kiss",
+        "label": "主动吻他",
+        "detail": "在电影重新亮起前先靠近一步",
+        "axis": "keep",
+        "motif": "照片",
+        "sound": "photo",
+        "memory": "停电的夜里，她先吻了他。",
+        "confirmation": "电影还没有恢复，他们已经有了一段只属于黑暗的画面。",
+        "nearEcho": "此后每次停电，阿拉什都会下意识伸手找她；莱拉总比他早半步碰到那只手。",
+        "farEcho": "咖啡馆的灯闪了一下，他们都抬起头，却没有再靠近。",
+        "endingFragment": "你留住了停电时的那个吻。它没有要求后来的人生作证，只证明他们曾经毫不犹豫地靠近。",
+        "revisitEcho": "黑暗里，两只手再次先于语言找到彼此。"
+      },
+      {
+        "id": "leave",
+        "label": "先行离开",
+        "detail": "把心动收好，给自己一个夜晚",
+        "axis": "survive",
+        "motif": "电影票",
+        "sound": "ticket",
+        "memory": "她先走下楼梯，脚步很稳，心跳不是。",
+        "confirmation": "第二天，她仍比约定早到了十分钟。",
+        "nearEcho": "那以后莱拉总会提前确认出口，也总会在确认安全后第一个回来。",
+        "farEcho": "重逢时，她先看见咖啡馆的后门；确认出口以后，才允许自己认真看他。",
+        "endingFragment": "你保留了她先离开的能力。那不是拒绝，而是她很早就学会的事：勇气有时需要一条看得见的退路。",
+        "revisitEcho": "她记住了出口，也记住了自己第二天仍然回来。"
+      }
     ]
   },
   {
-    id:"choice-one", kind:"choice", chapter:"chapter1", chapterLabel:"记忆选择 I", place:"停电后的地下室", art:"/art-v2/basement-cinema.png", choiceId:"choice-one", speaker:"阿拉什",
-    body:["“看不见画面，故事也不会消失。”他站得很近。多年以后，你希望莱拉怎样记住这一刻？"],
-    choices:choiceOne
-  },
-  {
-    id:"love-montage", kind:"montage", chapter:"chapter1", chapterLabel:"蒙太奇 · 很多个夜晚", place:"德黑兰", art:"/art-v2/street-rain.png", echoFrom:"choice-one",
-    beats:[
-      "他们在屋顶分一只石榴，争论一首诗究竟写的是爱情还是恐惧。",
-      "莱拉翻译被删去的对白，阿拉什把收音机改到能听见远方的频率。",
-      "雨下得很小时，他们故意只带一把伞。",
-      "他们开始把“以后”说得很具体：一间有两扇窗的房子，一张能放下两台电脑的桌子，还有一个不用压低声音说话的地方。"
+    "id": "echo-one",
+    "kind": "echo",
+    "chapter": "chapter1",
+    "chapterLabel": "后来 · 德黑兰的夜晚",
+    "place": "雨、屋顶与一台旧放映机",
+    "art": "/art-v3/tehran-rooftop.png",
+    "artFocus": "close",
+    "object": "poem",
+    "body": [
+      "他们在屋顶分石榴，在雨里共用一把伞。风掀起伞沿时，莱拉抓住伞柄说：“别松手。”阿拉什握紧伞柄，带她绕开屋檐下漏水的那一段。"
     ]
   },
   {
-    id:"promise", kind:"narrative", chapter:"chapter1", chapterLabel:"第一章 · 革命街上的恋人", place:"德黑兰大学 · 毕业照那天", art:"/art-v2/street-rain.png", speaker:"莱拉与阿拉什",
-    body:[
-      "摄影师让所有人看镜头，他们却隔着人群看向彼此。",
-      "“谁先离开，就等另一个人。”",
-      "那时他们以为，离开只是买两张票的问题。"
+    "id": "promise",
+    "kind": "narrative",
+    "chapter": "chapter1",
+    "chapterLabel": "第一章 · 革命街上的恋人",
+    "place": "毕业照那天",
+    "art": "/art-v5/graduation-photo-day.png",
+    "canonicalPhoto": "/art-v5/canonical-graduation-photo.png",
+    "object": "photo",
+    "paidDialogueId": "paid-photo-developing",
+    "chapterEnd": "chapter1",
+    "rewardId": "chapter1",
+    "body": [
+      "摄影师问：“照片要冲两张吗？”莱拉说两张。快门按下时，所有人看着镜头，他们隔着人群看彼此。后来，他们冲洗了两张同版照片：莱拉带走一张，阿拉什把另一张夹进诗集。",
+      "阿拉什收好其中一张，又收起复健预约单。父亲中风后，维修铺、药单和账本都在等他；莱拉第一次明白，他口中的“留下”不只有理想。"
     ]
   },
   {
-    id:"chapter-two", kind:"chapter", chapter:"chapter2", chapterLabel:"第二章", place:"知识变成证据", year:"德黑兰 · 2009", art:"/art-v2/poetry-list.png",
-    body:["他们曾用知识寻找出口。后来，知识先替权力找到了他们。"]
-  },
-  {
-    id:"publication", kind:"narrative", chapter:"chapter2", chapterLabel:"第二章 · 知识变成证据", place:"学生宿舍 · 深夜", art:"/art-v2/poetry-list.png",
-    body:[
-      "刊物最初只写诗、电影和女性如何独自乘夜班车。每一期印四十份，纸张来自不同文印店，避免有人记住他们。",
-      "后来，空白越来越难以绕开。玛兹雅写了一篇关于失踪学生的文章，莱拉改完最后一个句号，房间里谁也没有说话。",
-      "阿拉什把窗帘拉紧：文字一旦印出来，就不再只属于写下它的人。"
+    "id": "chapter-two",
+    "kind": "chapter",
+    "chapter": "chapter2",
+    "chapterLabel": "第二章",
+    "place": "知识变成证据",
+    "year": "德黑兰 · 2009",
+    "art": "/art-v4/student-publication-room.png",
+    "body": [
+      "他们曾用文字寻找出口。后来，文字先替权力找到了他们。"
     ]
   },
   {
-    id:"protest", kind:"narrative", chapter:"chapter2", chapterLabel:"第二章 · 知识变成证据", place:"德黑兰大学广场", art:"/art-v2/poetry-list.png",
-    body:[
-      "集会只持续了十七分钟。口号还没有喊整齐，校园的门便从里面锁上。",
-      "第二天，三张座位空着。有人说他们回了家，有人说他们被带去问话。玛兹雅把一份参与者名单塞给莱拉，只说：如果我不回来，别让他们像没存在过。",
-      "走廊尽头传来宿舍搜查的脚步。"
+    "id": "publication",
+    "kind": "narrative",
+    "chapter": "chapter2",
+    "chapterLabel": "第二章 · 知识变成证据",
+    "place": "学生宿舍 / 大学广场",
+    "art": "/art-v4/student-publication-room.png",
+    "object": "list",
+    "progressive": true,
+    "interactionIds": ["publication-clues"],
+    "body": [
+      "刊物最初只写电影、诗和女性生活。玛兹雅校对时，总用蓝铅笔画一颗小太阳。后来，他们报道了三名失踪学生，校园随即从里面锁上。",
+      "玛兹雅当夜被带走，去向不明。第二天，学校叫莱拉去问话：谁和你一起做了刊物？"
     ]
   },
   {
-    id:"choice-two", kind:"choice", chapter:"chapter2", chapterLabel:"记忆选择 II", place:"宿舍搜查前夜", art:"/art-v2/poetry-list.png", choiceId:"choice-two", speaker:"阿拉什",
-    body:["“烧掉它，你才能安全。”莱拉看着纸上的名字。要保护活着的人，还是留下他们存在过的证据？"],
-    choices:choiceTwo
-  },
-  {
-    id:"investigation", kind:"narrative", chapter:"chapter2", chapterLabel:"第二章 · 知识变成证据", place:"大学纪律委员会", art:"/art-v2/poetry-list.png", echoFrom:"choice-two",
-    body:[
-      "调查的人没有提高声音。他只是把莱拉翻译过的电影、改过的文章和参加过的读书会依次推到桌上。",
-      "“你一直说这些只是文学。为什么文学总把你带到同一群人身边？”",
-      "她失去继续深造的资格。出版社撤回工作邀请，护照申请也从此没有回音。选择没有改变处分，却改变了她后来如何看待那张名单。"
+    "id": "choice-two",
+    "kind": "choice",
+    "chapter": "chapter2",
+    "chapterLabel": "第二次保存",
+    "place": "大学纪律委员会",
+    "art": "/art-v4/dorm-search-night.png",
+    "body": [
+      "调查者把三份刊物推到莱拉面前：“谁和你一起做的？”她必须决定是否告发同伴。"
+    ],
+    "choiceId": "choice-two",
+    "interactionIds": ["names-decision"],
+    "revisitBody": [
+      "调查者仍在追问同一个问题：谁和你一起做的？这一次，她可以重新决定是否告发同伴。"
+    ],
+    "choices": [
+      {
+        "id": "reporter",
+        "label": "只承认自己",
+        "detail": "承认自己参与刊物，但不提供任何同伴姓名",
+        "axis": "speak",
+        "motif": "供词",
+        "sound": "paper",
+        "memory": "她只说自己的事，不替任何人作证。",
+        "confirmation": "记录员追问三次，她三次重复同一句。",
+        "nearEcho": "纪律委员会拿着已有材料追问同伴，莱拉只承认自己的文章。处分照样落下。",
+        "farEcho": "阿拉什翻到夹着处分通知的书页，仍记得她当年把每一句供词的主语都写成“我”。",
+        "endingFragment": "你让她只承认自己的部分。她没有替同伴作证，也没有因此逃过处分。",
+        "revisitEcho": "调查者换了三种问法，她只用“我”回答。"
+      },
+      {
+        "id": "book",
+        "label": "拒绝告发",
+        "detail": "一个名字也不说，让沉默保护同伴",
+        "axis": "keep",
+        "motif": "诗集",
+        "sound": "paper",
+        "memory": "她拒绝指认任何同伴，把沉默留在记录里。",
+        "confirmation": "房间里只剩钟表声。",
+        "nearEcho": "问话记录写着“拒绝回答”。学校把沉默也算成了证据。",
+        "farEcho": "十三年后，诗集里仍夹着那张处分通知；“拒绝回答”四个字已经发黄。",
+        "endingFragment": "你让她拒绝告发。沉默没有撤销处分，却把同伴的名字留在她自己的记忆里。",
+        "revisitEcho": "记录停在空白处，处分通知后来被夹进诗集。"
+      },
+      {
+        "id": "burn",
+        "label": "说出名字",
+        "detail": "提供调查者追问的姓名，换取减轻处理",
+        "axis": "survive",
+        "motif": "笔迹",
+        "sound": "ash",
+        "memory": "她说出了三个名字，希望学校减轻处理。",
+        "confirmation": "笔尖停下时，她没有抬头。",
+        "nearEcho": "处理没有真正减轻。她第一次知道，妥协也可能什么都换不来。",
+        "farEcho": "诗集里夹着处分通知，供词栏有三个被划过的名字。阿拉什没有替她解释。",
+        "endingFragment": "你让她说出三个调查者早已圈出的名字。处理没有减轻，这个动作也没有被结局原谅或定罪。",
+        "revisitEcho": "三个名字落在纸上，处理决定仍然没有变。"
+      }
     ]
   },
   {
-    id:"after-gate", kind:"narrative", chapter:"chapter2", chapterLabel:"第二章 · 知识变成证据", place:"大学铁门外", art:"/art-v2/poetry-list.png", speaker:"莱拉",
-    body:[
-      "阿拉什隔着铁门说，他们还可以写，还可以等。",
-      "莱拉第一次发现，“我们”这个词并不总能平均分担后果。阿拉什仍能回实验室，而她连一份校对工作都找不到。",
-      "世界没有在那天结束。它只是变窄了。"
+    "id": "echo-two",
+    "kind": "echo",
+    "chapter": "chapter2",
+    "chapterLabel": "后来 · 纪律委员会",
+    "place": "没有提高声音的问话",
+    "art": "/art-v3/discipline-committee.png",
+    "artFocus": "desk",
+    "object": "list",
+    "interactionIds": ["discipline-record"],
+    "body": [
+      "调查的人把刊物、电影字幕和读书会记录依次推到莱拉面前。玛兹雅六个月后获释，再也没有回到大学。后来，她在设拉子一家儿童图书馆工作；修补过的借阅卡右下角，仍有蓝铅笔画的小太阳。"
     ]
   },
   {
-    id:"chapter-three", kind:"chapter", chapter:"chapter3", chapterLabel:"第三章", place:"只有一个人能够离开", year:"德黑兰 · 2010", art:"/art-v2/departure-station.png",
-    body:["爱可以让两个人共同忍耐，却不能替他们回答：为什么而忍耐。"]
-  },
-  {
-    id:"small-room", kind:"narrative", chapter:"chapter3", chapterLabel:"第三章 · 只有一个人能够离开", place:"德黑兰 · 出租屋", art:"/art-v2/departure-station.png",
-    body:[
-      "他们搬进一间临街的出租屋。白天，莱拉翻译软件说明书；夜里，她给盗版电影配字幕。阿拉什替邻居修电脑，把报酬塞进装茶叶的铁盒。",
-      "停电时，他们仍会点蜡烛读诗。只是蜡烛旁边多了房租、药费和一封又一封没有回音的护照申请。",
-      "共同生活不再是屋顶上的想象，而是一张每天都要重新计算的账单。"
+    "id": "after-gate",
+    "kind": "narrative",
+    "chapter": "chapter2",
+    "chapterLabel": "第二章 · 知识变成证据",
+    "place": "大学铁门外",
+    "art": "/art-v4/university-gate-expulsion.png",
+    "paidDialogueId": "paid-lab-door",
+    "chapterEnd": "chapter2",
+    "rewardId": "chapter2",
+    "body": [
+      "莱拉失去继续深造的资格，出版社撤回工作邀请。实验楼的门合上前，阿拉什往前半步，又停住。",
+      "铁门外，莱拉看见他胸前还挂着实验室门卡，自己的名字却已从学生系统里消失。世界没有结束。它只是变窄了。"
     ]
   },
   {
-    id:"one-year", kind:"narrative", chapter:"chapter3", chapterLabel:"第三章 · 只有一个人能够离开", place:"出租屋 · 凌晨", art:"/art-v2/departure-station.png", speaker:"莱拉与阿拉什",
-    body:[
-      "“如果一年以后什么也没有改变呢？”",
-      "阿拉什很久才说：“那就再等一年。总要有人留下，证明这里不只剩沉默。”",
-      "“你把留下当作理想。可我已经快要在这里变成另一个人。”"
+    "id": "chapter-three",
+    "kind": "chapter",
+    "chapter": "chapter3",
+    "chapterLabel": "第三章",
+    "place": "只有一个人能够离开",
+    "year": "德黑兰 · 2010",
+    "art": "/art-v3/tehran-airport-departure.png",
+    "body": [
+      "出租屋钥匙落在桌子中央，护照申请压在另一边。两个人各自伸手，碰到的是不同的东西。"
     ]
   },
   {
-    id:"kamran", kind:"narrative", chapter:"chapter3", chapterLabel:"第三章 · 只有一个人能够离开", place:"圣何塞 / 德黑兰 · 视频通话", art:"/art-v2/san-jose.png", speaker:"卡姆兰",
-    body:[
-      "姨妈介绍的男人叫卡姆兰，在圣何塞一家软件外包公司工作。他没有展示汽车或泳池，只把摄像头转向堆着纸箱的客厅。",
-      "“我写代码、堵车、还贷款。美国没有你想象的那么像电影。”",
-      "他停了一下：“我知道你不是为了爱找我。但如果你愿意认真对待这段婚姻，我可以帮你离开。”"
+    "id": "small-room",
+    "kind": "montage",
+    "chapter": "chapter3",
+    "chapterLabel": "蒙太奇 · 出租屋",
+    "place": "一段越来越具体的共同生活",
+    "art": "/art-v3/tehran-rental-room.png",
+    "object": "ticket",
+    "interactionIds": ["departure-packing"],
+    "beats": [
+      "莱拉白天翻译软件说明书，夜里给盗版电影配字幕。",
+      "阿拉什替邻居修电脑，晚上再去父亲的维修铺对账。",
+      "停电后，他们点蜡烛读诗。房租、药费和没有回音的护照申请也摊在烛光里。"
     ]
   },
   {
-    id:"choice-three", kind:"choice", chapter:"chapter3", chapterLabel:"记忆选择 III", place:"德黑兰屋顶 · 最后一夜", art:"/art-v2/departure-station.png", choiceId:"choice-three", speaker:"莱拉",
-    body:["离开前，她最后一次来到屋顶。城市仍是他们熟悉的样子。她要怎样把这场离开告诉阿拉什？"],
-    choices:choiceThree
-  },
-  {
-    id:"departure", kind:"narrative", chapter:"chapter3", chapterLabel:"第三章 · 只有一个人能够离开", place:"德黑兰火车站", art:"/art-v2/departure-station.png",
-    body:[
-      "天亮以前，莱拉拖着一只旧箱子走向站台。她每经过一根柱子，都以为下一根后面会出现阿拉什。",
-      "列车鸣笛时，他确实来了，却只站在时钟下面。两个人隔着人群，没有挥手。",
-      "从列车开动的那天起，他们仍然相爱，却不再拥有同一个未来。"
+    "id": "one-year",
+    "kind": "narrative",
+    "chapter": "chapter3",
+    "chapterLabel": "第三章 · 只有一个人能够离开",
+    "place": "出租屋 · 凌晨",
+    "art": "/art-v3/tehran-rental-room.png",
+    "progressive": true,
+    "speaker": "莱拉与阿拉什",
+    "body": [
+      "“如果一年以后什么也没有改变呢？”阿拉什看着父亲复健预约单：“那就再等一年。我不能让母亲一个人守着店，也不能让米拉德退学去接我的班。”",
+      "莱拉把护照申请收回信封：“你留下，会继续是你自己。我留下，只会越来越不像我。”"
     ]
   },
   {
-    id:"chapter-four", kind:"chapter", chapter:"chapter4", chapterLabel:"第四章", place:"两个城市", year:"圣何塞 / 德黑兰 · 2011—2021", art:"/art-v2/san-jose.png",
-    body:["离开不是抵达。留下也不是停止。"]
-  },
-  {
-    id:"america-montage", kind:"montage", chapter:"chapter4", chapterLabel:"蒙太奇 · 圣何塞", place:"一段普通的美国生活", art:"/art-v2/san-jose.png",
-    beats:[
-      "莱拉的学历不被完全承认。她在软件公司检查别人写好的波斯语句子，找出标点和方向错误。",
-      "卡姆兰替她改简历，在她半夜想家时开车去二十四小时营业的伊朗超市。",
-      "他们没有突然相爱。只是账单有人分担，生病时有人记得买药，沉默也不再总需要解释。",
-      "有一天，莱拉发现自己已经会在下班路上顺手买卡姆兰喜欢的石榴。"
+    "id": "kamran",
+    "kind": "narrative",
+    "chapter": "chapter3",
+    "chapterLabel": "第三章 · 只有一个人能够离开",
+    "place": "圣何塞 / 德黑兰",
+    "art": "/art-v4/video-call-kamran.png",
+    "object": "email",
+    "paidDialogueId": "paid-marriage-truth",
+    "body": [
+      "姨妈介绍的卡姆兰把镜头转向堆满纸箱的客厅。他在软件外包公司工作，周末拍湾区空荡的停车场，自己冲洗黑白照片。“我知道你来找我的原因。只要我们都认真对待这段婚姻，我可以帮你离开。”",
+      "通话结束前，卡姆兰把一张接触印样举到镜头前，请她替摄影投稿选一格。莱拉指出雾里的路灯压住了人物；他当场划掉那张，留下她选的空停车场。第二天，莱拉主动给姨妈回电话，要求先看全部手续，也要求婚后继续工作。三周后，她寄出第一份表格。"
     ]
   },
   {
-    id:"two-cities", kind:"montage", chapter:"chapter4", chapterLabel:"蒙太奇 · 两个城市", place:"圣何塞 / 德黑兰", art:"/art-v2/san-jose.png",
-    beats:[
-      "阿拉什留在大学实验室，后来在家人的安排下认识玛丽亚姆。她不懂他年轻时谈论的电影，却记得给他父亲按时送药。",
-      "他们都结了婚，都学会了如何对一个没有参与旧日爱情的人负责。",
-      "曾经讨论革命的年轻人，开始讨论孩子的学费、堵车和漏水的管道。",
-      "邮件从一页变成一段，从一段变成节日问候，最后只剩一句：革命街上的旧书店关门了。"
+    "id": "choice-three",
+    "kind": "choice",
+    "chapter": "chapter3",
+    "chapterLabel": "第三次保存",
+    "place": "德黑兰屋顶 · 最后一夜",
+    "art": "/art-v4/final-rooftop-night.png",
+    "body": [
+      "手续已经推进，机票已经买好，卡姆兰的名字就在文件信封上。离开无法再被一句话取消；她仍要决定怎样把它告诉阿拉什。"
+    ],
+    "choiceId": "choice-three",
+    "interactionIds": ["last-night-truth"],
+    "revisitBody": [
+      "航班与手续已经确定。重剪不取消离开，只决定她把什么留在最后一夜。"
+    ],
+    "choices": [
+      {
+        "id": "truth",
+        "label": "把一切一次说完",
+        "detail": "把卡姆兰、婚姻、机票、害怕和仍然爱他一次说完",
+        "axis": "speak",
+        "motif": "未寄出的信",
+        "sound": "paper",
+        "memory": "她把最难听的真话留给了最爱的人。",
+        "confirmation": "真话没有使夜晚更轻，但没有留下猜测。",
+        "nearEcho": "国际出发大厅里，阿拉什没有追问卡姆兰。他只是把她行李箱松开的搭扣重新扣好，然后退回大厅时钟下面。",
+        "farEcho": "绿灯前，阿拉什没有再问卡姆兰是谁；那个名字早已在最后一夜说完。",
+        "endingFragment": "你让婚姻、恐惧和爱情同时被说出。真相没有挽留任何人，却使他们不必用余生猜测那场离开的名字。",
+        "revisitEcho": "出发大厅的沉默里，不再藏着一个未被说出的名字。"
+      },
+      {
+        "id": "escape",
+        "label": "再问一条共同的路",
+        "detail": "先说清卡姆兰，再问阿拉什是否愿意一起寻找另一条路",
+        "axis": "keep",
+        "motif": "两张车票",
+        "sound": "ticket",
+        "memory": "她最后问了一次，而他的沉默就是回答。",
+        "confirmation": "城市很大，却没有一条他们共同的出口。",
+        "nearEcho": "阿拉什赶到机场时仍带着两张旧公交票，像是误拿了某个本来可以成真的未来。",
+        "farEcho": "绿灯前，阿拉什把手从外套口袋里抽出来；那两张旧公交票仍夹在诗集末页。",
+        "endingFragment": "你让她最后一次伸手要一个共同未来。阿拉什没有接住，但那次请求使他们都无法把分离伪装成误会。",
+        "revisitEcho": "诗集末页，多了两张没能把他们带到同一个出口的公交票。"
+      },
+      {
+        "id": "conceal",
+        "label": "只说航班已经确定",
+        "detail": "只说航班已经确定，把卡姆兰的名字留在信封里",
+        "axis": "survive",
+        "motif": "行李牌",
+        "sound": "ticket",
+        "memory": "她省略了婚姻，把最锋利的部分留给自己。",
+        "confirmation": "她先确认了航班和登机口，才允许自己哭。",
+        "nearEcho": "安检口前阿拉什问还有没有别的事。莱拉握紧行李牌，说没有。登机广播仍准时响起。",
+        "farEcho": "路口，她先说卡姆兰正在等她；十三年前留在信封里的名字终于抵达街上。",
+        "endingFragment": "你让她保留了最后一点能继续行动的体面。隐瞒留下伤口，也让她在那个早晨没有失去离开的力气。",
+        "revisitEcho": "行李牌上的目的地清楚，告别里的原因仍然空白。"
+      }
     ]
   },
   {
-    id:"last-email", kind:"narrative", chapter:"chapter4", chapterLabel:"第四章 · 两个城市", place:"一封没有回复的邮件", art:"/art-v2/san-jose.png", speaker:"阿拉什",
-    body:[
-      "莱拉读完那句话，打开回复框。她写：我记得地下室的味道。删掉。又写：那本诗集还在吗？再次删掉。",
-      "卡姆兰在卧室叫她早点睡。她合上电脑，没有回复。",
-      "沉默终于不再是一场争吵，而是一种已经形成的生活。"
+    "id": "echo-three",
+    "kind": "echo",
+    "chapter": "chapter3",
+    "chapterLabel": "后来 · 德黑兰国际机场",
+    "place": "国际出发 · 天亮以前",
+    "art": "/art-v4/airport-clock-goodbye.png",
+    "artFocus": "airport",
+    "object": "ticket",
+    "interactionIds": ["airport-goodbye"],
+    "chapterEnd": "chapter3",
+    "rewardId": "chapter3",
+    "body": [
+      "阿拉什发来一条迟到的信息：“我到了。”莱拉抬头，他正站在大厅时钟下面。",
+      "他替她扣紧行李箱松开的搭扣，没有请她留下。登机广播开始念她的航班。"
     ]
   },
   {
-    id:"chapter-five", kind:"chapter", chapter:"chapter5", chapterLabel:"第五章", place:"伊斯坦布尔重逢", year:"十三年后", art:"/art-v2/istanbul-cafe.png",
-    body:["他们不是来重新选择，只是想确认那段过去确实存在。"]
-  },
-  {
-    id:"reunion", kind:"narrative", chapter:"chapter5", chapterLabel:"第五章 · 伊斯坦布尔重逢", place:"卡拉柯伊 · 老咖啡馆", art:"/art-v2/istanbul-cafe.png", echoFrom:"choice-three", speaker:"阿拉什与莱拉",
-    body:[
-      "“你过得好吗？”——“还可以。你呢？”——“也还可以。”十三年被两句礼貌的话轻轻盖住。",
-      "他们谈起教授、放映机、已经关门的旧书店，也谈各自的伴侣和孩子。没有人要求另一个人证明谁爱得更多。",
-      "有些细节却比语言更诚实。"
+    "id": "chapter-four",
+    "kind": "chapter",
+    "chapter": "chapter4",
+    "chapterLabel": "第四章",
+    "place": "两个城市",
+    "year": "圣何塞 / 德黑兰 · 2011—2021",
+    "art": "/art-v5/san-jose-arrival-2011.png",
+    "body": [
+      "莱拉的飞机落地时，德黑兰的维修铺刚拉下卷帘门。两只钟从此显示不同的早晨。"
     ]
   },
   {
-    id:"book", kind:"narrative", chapter:"chapter5", chapterLabel:"第五章 · 伊斯坦布尔重逢", place:"诗集与照片", art:"/art-v2/istanbul-cafe.png",
-    body:[
-      "阿拉什从包里拿出那本诗集。书页已经发黄，年轻时的合照仍夹在原来的位置。",
-      "莱拉用手指抚平照片翘起的一角。她没有带走它，只把照片放回书里，把书推还给阿拉什。",
-      "不是所有被保存的东西，都必须被带走。"
+    "id": "two-cities",
+    "kind": "montage",
+    "chapter": "chapter4",
+    "chapterLabel": "蒙太奇 · 两个城市",
+    "place": "各自成立的生活",
+    "art": "/art-v4/localization-office.png",
+    "arts": [
+      "/art-v4/localization-office.png",
+      "/art-v4/maryam-telescope-rooftop.png",
+      "/art-v3/san-jose-apartment.png"
+    ],
+    "interactionIds": ["dual-city-objects"],
+    "paidDialogueId": "paid-two-cities-choice",
+    "beats": [
+      "莱拉在圣何塞落地，给卡姆兰发：“航班落地了。我在取行李。”白天她检查波斯语界面；晚上卡姆兰冲洗停车场的黑白照片。她替底片写波斯语编号，他按她选的光线重新放大。",
+      "玛丽亚姆把流星观测表铺在阿拉什的实验记录旁，教他用误差范围重排数据；他据此找出一组坏传感器。后来，阿拉什用实验室废弃齿轮替她修好望远镜跟踪架，她拍下第一张完整的流星轨迹。",
+      "他们各自成家，也把笑话、坏脾气和真正感兴趣的事带进眼前的关系。邮件从一页变成一段，最后剩下一句：革命街上的旧书店关门了。"
     ]
   },
   {
-    id:"crossroads", kind:"narrative", chapter:"chapter5", chapterLabel:"终章 · 另一个故事", place:"伊斯坦布尔街头", art:"/art-v2/istanbul-crossroad.png", speaker:"阿拉什与莱拉",
-    body:[
-      "绿灯亮起。莱拉要去机场，阿拉什要回酒店。他们站在路口，没有拥抱，也没有接吻。",
-      "“如果当年我跟你走了呢？”",
-      "莱拉看着他：“那我们会有另一个故事。”人群涌来，他们向不同方向走去。"
+    "id": "email",
+    "kind": "resonance",
+    "chapter": "chapter4",
+    "chapterLabel": "第四章 · 没有回复的邮件",
+    "place": "圣何塞 · 凌晨",
+    "art": "/art-v4/email-delete-night.png",
+    "artFocus": "screen",
+    "object": "email",
+    "resonanceId": "email",
+    "interactionIds": ["email-draft"],
+    "revisitBody": [
+      "光标仍在空白回复框里闪。重剪只改变她写下、又亲手删去的那一句。"
+    ],
+    "resonances": [
+      {
+        "id": "basement",
+        "label": "“我记得地下室的味道。”",
+        "detail": "写下最具体的那一晚",
+        "motif": "删除键",
+        "sound": "email",
+        "echo": "光标停在“地下室的味道”后面。她点下删除，输入框重新变空。",
+        "endingFragment": "她曾写下地下室潮湿的纸张和热灯泡气味，后来删掉了；重逢时，那气味仍先于对白回来。",
+        "confirmation": "点下删除前，光标又闪了两次。"
+      },
+      {
+        "id": "book",
+        "label": "“那本诗集还在吗？”",
+        "detail": "问一个她其实害怕知道答案的问题",
+        "motif": "邮件草稿",
+        "sound": "email",
+        "echo": "问题写完以后，她没有按发送。她不确定自己想问的是书，还是书里仍被保管的那些人。",
+        "endingFragment": "她曾在邮件里问诗集是否还在，又删掉了。十三年后，阿拉什用把书放到桌上的动作回答了她。",
+        "confirmation": "她在问号后停了一分钟。"
+      },
+      {
+        "id": "well",
+        "label": "“我现在过得很好。”",
+        "detail": "写下一句既真实又不完整的话",
+        "motif": "未发送",
+        "sound": "email",
+        "echo": "她看着“很好”两个字，承认生活确实已经有了重量，然后删掉整句。",
+        "endingFragment": "她曾想告诉他自己过得很好。那不是炫耀，也不是谎言；只是完整生活无法被压进一封旧情人的邮件。",
+        "confirmation": "这句话是真的，只是不完整。"
+      }
+    ],
+    "body": [
+      "莱拉打开回复框。卡姆兰在客厅整理新洗出的照片，没有催她睡。她写下一句话，最后仍会删除。十三年后，她会先想起其中的某个词。"
+    ]
+  },
+  {
+    "id": "last-email",
+    "kind": "narrative",
+    "chapter": "chapter4",
+    "chapterLabel": "第四章 · 没有回复的邮件",
+    "place": "删除以后",
+    "art": "/art-v4/email-delete-night.png",
+    "object": "email",
+    "interactionIds": ["receipt-memory-combination"],
+    "chapterEnd": "chapter4",
+    "rewardId": "chapter4",
+    "body": [
+      "屏幕重新变成空白。卡姆兰把一张刚洗好的照片递给她：雾里的高速公路没有一辆车。“像不像你总说的革命街？”莱拉说不像，然后把照片贴到了冰箱上。"
+    ]
+  },
+  {
+    "id": "chapter-five",
+    "kind": "chapter",
+    "chapter": "chapter5",
+    "chapterLabel": "第五章",
+    "place": "伊斯坦布尔重逢",
+    "year": "十三年后",
+    "art": "/art-v2/istanbul-cafe.png",
+    "body": [
+      "门外下着雨。莱拉先放好照片，阿拉什抱着诗集推门。他们说完你好，再把十三年分成几件可以放上桌的东西。"
+    ]
+  },
+  {
+    "id": "gaze",
+    "kind": "resonance",
+    "chapter": "chapter5",
+    "chapterLabel": "第五章 · 重逢",
+    "place": "卡拉柯伊 · 老咖啡馆",
+    "art": "/art-v5/istanbul-reunion-aged.png",
+    "artFocus": "table",
+    "object": "book",
+    "resonanceId": "gaze",
+    "interactionIds": ["reunion-gaze"],
+    "revisitBody": [
+      "门已经推开。你可以重新决定十三年的时间先落进哪一个取景框。"
+    ],
+    "resonances": [
+      {
+        "id": "hands",
+        "label": "先看他的白发与手",
+        "detail": "辨认时间留在一个人身上的地方",
+        "motif": "手与白发",
+        "sound": "photo",
+        "echo": "她先认出他端茶时仍会用拇指摩挲杯沿，只是手背多了细纹。",
+        "endingFragment": "最后的镜头停在他放开茶杯的手上。亲密感没有消失，只是失去了继续使用的权利。",
+        "confirmation": "十三年先落在指节和鬓角。"
+      },
+      {
+        "id": "book",
+        "label": "先看发黄的诗集",
+        "detail": "确认那些被保管的纸页",
+        "motif": "发黄书页",
+        "sound": "paper",
+        "echo": "她先看见诗集书脊上的裂口，才抬头看阿拉什。",
+        "endingFragment": "最后的镜头越过人群，停在他臂弯里的旧诗集上。被保存不等于能回去。",
+        "confirmation": "书页的颜色比记忆更诚实。"
+      },
+      {
+        "id": "clock",
+        "label": "先看时钟与机场方向",
+        "detail": "记住现实仍在等待",
+        "motif": "站钟",
+        "sound": "ticket",
+        "echo": "她先确认去机场还有四十分钟，也看见阿拉什手机上来自家人的未接来电。",
+        "endingFragment": "最后的镜头停在绿灯和机场方向牌上。两个人都已经有人在现实生活里等待。",
+        "confirmation": "四十分钟后，机场班车不会等她。"
+      }
+    ],
+    "body": [
+      "手机亮起：“我到了。”门被推开，雨水和热灯泡的气味一起进来。阿拉什先说你好。",
+      "“你过得好吗？”——“还可以。你呢？”——“也还可以。”他把诗集放在桌上。莱拉先把视线停在哪里？"
+    ]
+  },
+  {
+    "id": "book",
+    "kind": "narrative",
+    "chapter": "chapter5",
+    "chapterLabel": "第五章 · 两张相同的照片",
+    "place": "诗集与桌面",
+    "art": "/art-v5/poetry-book-photo-close.png",
+    "canonicalPhoto": "/art-v5/canonical-graduation-photo.png",
+    "artFocus": "book",
+    "object": "photo",
+    "interactionIds": ["photo-pairing"],
+    "paidDialogueId": "paid-reunion-hypothesis",
+    "body": [
+      "阿拉什翻开诗集，里面是他保存的那张毕业照；桌上或莱拉包里，是她保存的另一张。两张照片来自同一次冲洗，边角却有了不同的磨损。",
+      "他用指节压住要合上的书页，她按住自己的照片。十三年前那句“别松手”留在两处磨损之间。他们谈起玛兹雅、卡姆兰的底片和玛丽亚姆记录的流星。"
+    ]
+  },
+  {
+    "id": "crossroads",
+    "kind": "narrative",
+    "chapter": "chapter5",
+    "chapterLabel": "终章 · 另一个故事",
+    "place": "伊斯坦布尔街头",
+    "art": "/art-v5/istanbul-crossroads-aged.png",
+    "progressive": true,
+    "speaker": "阿拉什与莱拉",
+    "interactionIds": ["final-crossroad"],
+    "chapterEnd": "chapter5",
+    "rewardId": "chapter5",
+    "body": [
+      "绿灯亮起。莱拉要去机场，阿拉什要回酒店。他们站在路口，没有拥抱。",
+      "“如果当年我跟你走了呢？”莱拉看着他：“那我们会有另一个故事。”",
+      "人群涌来。他们走向不同方向，又在同一刻回头笑了一下。"
     ]
   }
 ];
-
-export const choiceEchoes: Record<string, Record<string, string>> = {
-  "choice-one":{
-    kiss:"后来每逢停电，她都会想起自己先靠近的那一步；爱在那一刻不是承诺，只是一种不肯退后的本能。",
-    poem:"阿拉什把那首诗折成很小的一页，夹在工具盒里。多年后莱拉仍记得他手指沾着机油，却不肯弄脏纸角。",
-    leave:"她那晚先离开，第二天却比约定早到十分钟。有些谨慎不是拒绝，只是给勇气多争取一个夜晚。"
-  },
-  "choice-two":{
-    burn:"调查桌上没有那张名单。莱拉因此安全了一点，也因此永远无法确认自己究竟救下了谁。",
-    reporter:"名单已经到了墙外。她不知道世界是否听见，却知道有人会因这次传递继续被追问。",
-    book:"问话时，她想的不是处分，而是那本诗集是否仍安静地躺在书架上，替所有人保管名字。"
-  },
-  "choice-three":{
-    truth:"莱拉注意到阿拉什听她提起卡姆兰时仍会垂下眼睛，和那晚一样；亲密感没有消失，只是失去了使用它的权利。",
-    conceal:"她先看了一眼墙上的时钟和通往机场的路线。现实教会她，告别也有必须赶上的航班。",
-    escape:"阿拉什谈起旧书店时，她听见的不是怀旧，而是他们曾相信可以共同改变的世界仍在远处回响。"
-  }
-};
-
-export const reunionObservations: Record<EndingKey, string> = {
-  love:"她先认出他笑起来时眼角新添的纹路，也认出他端茶时仍会用拇指摩挲杯沿。身体记住的亲密，比语言更慢消失。",
-  idealism:"她一直看着那本诗集。旧书店关了，刊物散了，可他们当年相信过的事情并没有因此变得可笑。",
-  survival:"她注意到离机场还有多久，也注意到阿拉什手机上来自家人的未接来电。两个人都已经有人在现实生活里等待。",
-  mixed:"她同时看见他的白发、诗集的折痕和窗外通往机场的车流。任何一种记忆，都不足以解释完整的一生。"
-};
-
-export const endings: Record<EndingKey,{title:string;quote:string;body:string;coda:string}> = {
-  idealism:{title:"你记住了他们曾相信的事",quote:"“我们没有改变时代，但时代改变了我们。”",body:"你更在意那些被写下、被保存、被问出口的事。勇敢没有带来胜利，却让一些名字没有彻底消失。",coda:"理想没有替他们找到共同的路，却让那条路曾经发过光。"},
-  love:{title:"你记住了他们的爱情",quote:"“我没有忘记他，只是学会了不再回去。”",body:"你保留了亲吻、照片与难听的真话。爱没有把他们带到一起，却让年轻时的德黑兰始终真实。",coda:"他们没有重新开始，因为他们从未否认那段爱情发生过。"},
-  survival:{title:"你记住了他们如何活下去",quote:"“离开不是胜利，只是另一种活下去。”",body:"你知道保护自己并不等于怯懦。莱拉没有抵达梦想中的自由，只是终于拥有了决定明天的权利。",coda:"活下去并不壮烈，但它让人有机会继续成为自己。"},
-  mixed:{title:"你记住了他们完整的矛盾",quote:"“没有一种记忆，足以解释完整的一生。”",body:"他们既相爱，也曾相信理想，最后还必须学会活下去。三种力量彼此冲突，也共同构成了他们。",coda:"完整不是没有矛盾，而是允许矛盾同时为真。"}
-};
-
 export const revisitScenes: Scene[] = [
-  {id:"revisit-context-one",kind:"narrative",chapter:"chapter1",chapterLabel:"关键记忆 I",place:"旧书店地下室",art:"/art-v2/basement-cinema.png",body:["停电以后，电影只剩下声音。阿拉什站得很近。你会怎样重新记住这一刻？"]},
-  scenes.find(scene=>scene.id==="choice-one")!,
-  {id:"revisit-context-two",kind:"narrative",chapter:"chapter2",chapterLabel:"关键记忆 II",place:"宿舍搜查前夜",art:"/art-v2/poetry-list.png",body:["脚步正在靠近。名字、风险和那本诗集，再次回到你的手中。"]},
-  scenes.find(scene=>scene.id==="choice-two")!,
-  {id:"revisit-context-three",kind:"narrative",chapter:"chapter3",chapterLabel:"关键记忆 III",place:"德黑兰屋顶",art:"/art-v2/departure-station.png",body:["离开已经无法改变。你能改变的，只是莱拉如何说出最后的话。"]},
-  scenes.find(scene=>scene.id==="choice-three")!,
+  {
+    "id": "cut-one",
+    "kind": "narrative",
+    "chapter": "chapter1",
+    "chapterLabel": "记忆剪辑 01",
+    "place": "地下室停电以后",
+    "art": "/art-v4/underground-projector-close.png",
+    "body": [
+      "旧胶片停在接吻、折诗和楼梯口之间。你可以沿用上轮，也可以重新剪下这一格。"
+    ]
+  },
+  {
+    "id": "choice-one",
+    "kind": "choice",
+    "chapter": "chapter1",
+    "chapterLabel": "第一次保存",
+    "place": "停电后的地下室",
+    "art": "/art-v4/underground-projector-close.png",
+    "body": [
+      "“看不见画面，故事也不会消失。”停电还没结束。莱拉先做了什么？"
+    ],
+    "choiceId": "choice-one",
+    "choices": [
+      {
+        "id": "poem",
+        "label": "送他一首诗",
+        "detail": "让纸替她说出还不敢承认的话",
+        "axis": "speak",
+        "motif": "折诗",
+        "sound": "paper",
+        "memory": "她把诗留给他，相信文字能穿过停电后的黑暗。",
+        "confirmation": "纸被折了四次，刚好能藏进他的工具盒。",
+        "nearEcho": "阿拉什后来每次修放映机，都先把那张折诗从工具盒里取出来，放到不会沾上机油的地方。",
+        "farEcho": "十三年后，他没有背诵诗句，只说自己一直记得纸被折过的方向。",
+        "endingFragment": "你让那首没有署名的诗留下。它没有替他们找到出口，却让一句未说完的话抵达了另一个人。",
+        "revisitEcho": "旧工具盒里，多了一张沿折痕发白的诗页。"
+      },
+      {
+        "id": "kiss",
+        "label": "主动吻他",
+        "detail": "在电影重新亮起前先靠近一步",
+        "axis": "keep",
+        "motif": "照片",
+        "sound": "photo",
+        "memory": "停电的夜里，她先吻了他。",
+        "confirmation": "电影还没有恢复，他们已经有了一段只属于黑暗的画面。",
+        "nearEcho": "此后每次停电，阿拉什都会下意识伸手找她；莱拉总比他早半步碰到那只手。",
+        "farEcho": "咖啡馆的灯闪了一下，他们都抬起头，却没有再靠近。",
+        "endingFragment": "你留住了停电时的那个吻。它没有要求后来的人生作证，只证明他们曾经毫不犹豫地靠近。",
+        "revisitEcho": "黑暗里，两只手再次先于语言找到彼此。"
+      },
+      {
+        "id": "leave",
+        "label": "先行离开",
+        "detail": "把心动收好，给自己一个夜晚",
+        "axis": "survive",
+        "motif": "电影票",
+        "sound": "ticket",
+        "memory": "她先走下楼梯，脚步很稳，心跳不是。",
+        "confirmation": "第二天，她仍比约定早到了十分钟。",
+        "nearEcho": "那以后莱拉总会提前确认出口，也总会在确认安全后第一个回来。",
+        "farEcho": "重逢时，她先看见咖啡馆的后门；确认出口以后，才允许自己认真看他。",
+        "endingFragment": "你保留了她先离开的能力。那不是拒绝，而是她很早就学会的事：勇气有时需要一条看得见的退路。",
+        "revisitEcho": "她记住了出口，也记住了自己第二天仍然回来。"
+      }
+    ]
+  },
+  {
+    "id": "revisit-echo-one",
+    "kind": "revisitEcho",
+    "chapter": "chapter1",
+    "chapterLabel": "后来",
+    "place": "这次改动如何抵达未来",
+    "art": "/art-v4/graduation-photo-day.png",
+    "choiceId": "choice-one",
+    "choices": [
+      {
+        "id": "poem",
+        "label": "送他一首诗",
+        "detail": "让纸替她说出还不敢承认的话",
+        "axis": "speak",
+        "motif": "折诗",
+        "sound": "paper",
+        "memory": "她把诗留给他，相信文字能穿过停电后的黑暗。",
+        "confirmation": "纸被折了四次，刚好能藏进他的工具盒。",
+        "nearEcho": "阿拉什后来每次修放映机，都先把那张折诗从工具盒里取出来，放到不会沾上机油的地方。",
+        "farEcho": "十三年后，他没有背诵诗句，只说自己一直记得纸被折过的方向。",
+        "endingFragment": "你让那首没有署名的诗留下。它没有替他们找到出口，却让一句未说完的话抵达了另一个人。",
+        "revisitEcho": "旧工具盒里，多了一张沿折痕发白的诗页。"
+      },
+      {
+        "id": "kiss",
+        "label": "主动吻他",
+        "detail": "在电影重新亮起前先靠近一步",
+        "axis": "keep",
+        "motif": "照片",
+        "sound": "photo",
+        "memory": "停电的夜里，她先吻了他。",
+        "confirmation": "电影还没有恢复，他们已经有了一段只属于黑暗的画面。",
+        "nearEcho": "此后每次停电，阿拉什都会下意识伸手找她；莱拉总比他早半步碰到那只手。",
+        "farEcho": "咖啡馆的灯闪了一下，他们都抬起头，却没有再靠近。",
+        "endingFragment": "你留住了停电时的那个吻。它没有要求后来的人生作证，只证明他们曾经毫不犹豫地靠近。",
+        "revisitEcho": "黑暗里，两只手再次先于语言找到彼此。"
+      },
+      {
+        "id": "leave",
+        "label": "先行离开",
+        "detail": "把心动收好，给自己一个夜晚",
+        "axis": "survive",
+        "motif": "电影票",
+        "sound": "ticket",
+        "memory": "她先走下楼梯，脚步很稳，心跳不是。",
+        "confirmation": "第二天，她仍比约定早到了十分钟。",
+        "nearEcho": "那以后莱拉总会提前确认出口，也总会在确认安全后第一个回来。",
+        "farEcho": "重逢时，她先看见咖啡馆的后门；确认出口以后，才允许自己认真看他。",
+        "endingFragment": "你保留了她先离开的能力。那不是拒绝，而是她很早就学会的事：勇气有时需要一条看得见的退路。",
+        "revisitEcho": "她记住了出口，也记住了自己第二天仍然回来。"
+      }
+    ]
+  },
+  {
+    "id": "cut-two",
+    "kind": "narrative",
+    "chapter": "chapter2",
+    "chapterLabel": "记忆剪辑 02",
+    "place": "问话还没有结束",
+    "art": "/art-v4/dorm-search-night.png",
+    "body": [
+      "玛兹雅被带走后去向不明。纪律委员会叫莱拉说出其他参与者的名字。"
+    ]
+  },
+  {
+    "id": "choice-two",
+    "kind": "choice",
+    "chapter": "chapter2",
+    "chapterLabel": "第二次保存",
+    "place": "大学纪律委员会",
+    "art": "/art-v4/dorm-search-night.png",
+    "body": [
+      "调查者把三份刊物推到莱拉面前：“谁和你一起做的？”她必须决定是否告发同伴。"
+    ],
+    "choiceId": "choice-two",
+    "choices": [
+      {
+        "id": "reporter",
+        "label": "只承认自己",
+        "detail": "承认自己参与刊物，但不提供任何同伴姓名",
+        "axis": "speak",
+        "motif": "供词",
+        "sound": "paper",
+        "memory": "她只说自己的事，不替任何人作证。",
+        "confirmation": "记录员追问三次，她三次重复同一句。",
+        "nearEcho": "纪律委员会拿着已有材料追问同伴，莱拉只承认自己的文章。处分照样落下。",
+        "farEcho": "阿拉什翻到夹着处分通知的书页，仍记得她当年把每一句供词的主语都写成“我”。",
+        "endingFragment": "你让她只承认自己的部分。她没有替同伴作证，也没有因此逃过处分。",
+        "revisitEcho": "调查者换了三种问法，她只用“我”回答。"
+      },
+      {
+        "id": "book",
+        "label": "拒绝告发",
+        "detail": "一个名字也不说，让沉默保护同伴",
+        "axis": "keep",
+        "motif": "诗集",
+        "sound": "paper",
+        "memory": "她拒绝指认任何同伴，把沉默留在记录里。",
+        "confirmation": "房间里只剩钟表声。",
+        "nearEcho": "问话记录写着“拒绝回答”。学校把沉默也算成了证据。",
+        "farEcho": "十三年后，诗集里仍夹着那张处分通知；“拒绝回答”四个字已经发黄。",
+        "endingFragment": "你让她拒绝告发。沉默没有撤销处分，却把同伴的名字留在她自己的记忆里。",
+        "revisitEcho": "记录停在空白处，处分通知后来被夹进诗集。"
+      },
+      {
+        "id": "burn",
+        "label": "说出名字",
+        "detail": "提供调查者追问的姓名，换取减轻处理",
+        "axis": "survive",
+        "motif": "笔迹",
+        "sound": "ash",
+        "memory": "她说出了三个名字，希望学校减轻处理。",
+        "confirmation": "笔尖停下时，她没有抬头。",
+        "nearEcho": "处理没有真正减轻。她第一次知道，妥协也可能什么都换不来。",
+        "farEcho": "诗集里夹着处分通知，供词栏有三个被划过的名字。阿拉什没有替她解释。",
+        "endingFragment": "你让她说出三个调查者早已圈出的名字。处理没有减轻，这个动作也没有被结局原谅或定罪。",
+        "revisitEcho": "三个名字落在纸上，处理决定仍然没有变。"
+      }
+    ]
+  },
+  {
+    "id": "revisit-echo-two",
+    "kind": "revisitEcho",
+    "chapter": "chapter2",
+    "chapterLabel": "后来",
+    "place": "这次改动如何抵达未来",
+    "art": "/art-v4/university-gate-expulsion.png",
+    "choiceId": "choice-two",
+    "choices": [
+      {
+        "id": "reporter",
+        "label": "只承认自己",
+        "detail": "承认自己参与刊物，但不提供任何同伴姓名",
+        "axis": "speak",
+        "motif": "供词",
+        "sound": "paper",
+        "memory": "她只说自己的事，不替任何人作证。",
+        "confirmation": "记录员追问三次，她三次重复同一句。",
+        "nearEcho": "纪律委员会拿着已有材料追问同伴，莱拉只承认自己的文章。处分照样落下。",
+        "farEcho": "阿拉什翻到夹着处分通知的书页，仍记得她当年把每一句供词的主语都写成“我”。",
+        "endingFragment": "你让她只承认自己的部分。她没有替同伴作证，也没有因此逃过处分。",
+        "revisitEcho": "调查者换了三种问法，她只用“我”回答。"
+      },
+      {
+        "id": "book",
+        "label": "拒绝告发",
+        "detail": "一个名字也不说，让沉默保护同伴",
+        "axis": "keep",
+        "motif": "诗集",
+        "sound": "paper",
+        "memory": "她拒绝指认任何同伴，把沉默留在记录里。",
+        "confirmation": "房间里只剩钟表声。",
+        "nearEcho": "问话记录写着“拒绝回答”。学校把沉默也算成了证据。",
+        "farEcho": "十三年后，诗集里仍夹着那张处分通知；“拒绝回答”四个字已经发黄。",
+        "endingFragment": "你让她拒绝告发。沉默没有撤销处分，却把同伴的名字留在她自己的记忆里。",
+        "revisitEcho": "记录停在空白处，处分通知后来被夹进诗集。"
+      },
+      {
+        "id": "burn",
+        "label": "说出名字",
+        "detail": "提供调查者追问的姓名，换取减轻处理",
+        "axis": "survive",
+        "motif": "笔迹",
+        "sound": "ash",
+        "memory": "她说出了三个名字，希望学校减轻处理。",
+        "confirmation": "笔尖停下时，她没有抬头。",
+        "nearEcho": "处理没有真正减轻。她第一次知道，妥协也可能什么都换不来。",
+        "farEcho": "诗集里夹着处分通知，供词栏有三个被划过的名字。阿拉什没有替她解释。",
+        "endingFragment": "你让她说出三个调查者早已圈出的名字。处理没有减轻，这个动作也没有被结局原谅或定罪。",
+        "revisitEcho": "三个名字落在纸上，处理决定仍然没有变。"
+      }
+    ]
+  },
+  {
+    "id": "cut-three",
+    "kind": "narrative",
+    "chapter": "chapter3",
+    "chapterLabel": "记忆剪辑 03",
+    "place": "离开已经决定",
+    "art": "/art-v4/airport-clock-goodbye.png",
+    "body": [
+      "手续和机票不会消失。你只能重新决定，最后一夜有哪些话被留下。"
+    ]
+  },
+  {
+    "id": "choice-three",
+    "kind": "choice",
+    "chapter": "chapter3",
+    "chapterLabel": "第三次保存",
+    "place": "德黑兰屋顶 · 最后一夜",
+    "art": "/art-v4/final-rooftop-night.png",
+    "body": [
+      "手续已经推进，机票已经买好，卡姆兰的名字就在文件信封上。离开无法再被一句话取消；她仍要决定怎样把它告诉阿拉什。"
+    ],
+    "choiceId": "choice-three",
+    "choices": [
+      {
+        "id": "truth",
+        "label": "把一切一次说完",
+        "detail": "把卡姆兰、婚姻、机票、害怕和仍然爱他一次说完",
+        "axis": "speak",
+        "motif": "未寄出的信",
+        "sound": "paper",
+        "memory": "她把最难听的真话留给了最爱的人。",
+        "confirmation": "真话没有使夜晚更轻，但没有留下猜测。",
+        "nearEcho": "国际出发大厅里，阿拉什没有追问卡姆兰。他只是把她行李箱松开的搭扣重新扣好，然后退回大厅时钟下面。",
+        "farEcho": "绿灯前，阿拉什没有再问卡姆兰是谁；那个名字早已在最后一夜说完。",
+        "endingFragment": "你让婚姻、恐惧和爱情同时被说出。真相没有挽留任何人，却使他们不必用余生猜测那场离开的名字。",
+        "revisitEcho": "出发大厅的沉默里，不再藏着一个未被说出的名字。"
+      },
+      {
+        "id": "escape",
+        "label": "再问一条共同的路",
+        "detail": "先说清卡姆兰，再问阿拉什是否愿意一起寻找另一条路",
+        "axis": "keep",
+        "motif": "两张车票",
+        "sound": "ticket",
+        "memory": "她最后问了一次，而他的沉默就是回答。",
+        "confirmation": "城市很大，却没有一条他们共同的出口。",
+        "nearEcho": "阿拉什赶到机场时仍带着两张旧公交票，像是误拿了某个本来可以成真的未来。",
+        "farEcho": "绿灯前，阿拉什把手从外套口袋里抽出来；那两张旧公交票仍夹在诗集末页。",
+        "endingFragment": "你让她最后一次伸手要一个共同未来。阿拉什没有接住，但那次请求使他们都无法把分离伪装成误会。",
+        "revisitEcho": "诗集末页，多了两张没能把他们带到同一个出口的公交票。"
+      },
+      {
+        "id": "conceal",
+        "label": "只说航班已经确定",
+        "detail": "只说航班已经确定，把卡姆兰的名字留在信封里",
+        "axis": "survive",
+        "motif": "行李牌",
+        "sound": "ticket",
+        "memory": "她省略了婚姻，把最锋利的部分留给自己。",
+        "confirmation": "她先确认了航班和登机口，才允许自己哭。",
+        "nearEcho": "安检口前阿拉什问还有没有别的事。莱拉握紧行李牌，说没有。登机广播仍准时响起。",
+        "farEcho": "路口，她先说卡姆兰正在等她；十三年前留在信封里的名字终于抵达街上。",
+        "endingFragment": "你让她保留了最后一点能继续行动的体面。隐瞒留下伤口，也让她在那个早晨没有失去离开的力气。",
+        "revisitEcho": "行李牌上的目的地清楚，告别里的原因仍然空白。"
+      }
+    ]
+  },
+  {
+    "id": "revisit-echo-three",
+    "kind": "revisitEcho",
+    "chapter": "chapter3",
+    "chapterLabel": "后来",
+    "place": "这次改动如何抵达未来",
+    "art": "/art-v4/airport-clock-goodbye.png",
+    "choiceId": "choice-three",
+    "choices": [
+      {
+        "id": "truth",
+        "label": "把一切一次说完",
+        "detail": "把卡姆兰、婚姻、机票、害怕和仍然爱他一次说完",
+        "axis": "speak",
+        "motif": "未寄出的信",
+        "sound": "paper",
+        "memory": "她把最难听的真话留给了最爱的人。",
+        "confirmation": "真话没有使夜晚更轻，但没有留下猜测。",
+        "nearEcho": "国际出发大厅里，阿拉什没有追问卡姆兰。他只是把她行李箱松开的搭扣重新扣好，然后退回大厅时钟下面。",
+        "farEcho": "绿灯前，阿拉什没有再问卡姆兰是谁；那个名字早已在最后一夜说完。",
+        "endingFragment": "你让婚姻、恐惧和爱情同时被说出。真相没有挽留任何人，却使他们不必用余生猜测那场离开的名字。",
+        "revisitEcho": "出发大厅的沉默里，不再藏着一个未被说出的名字。"
+      },
+      {
+        "id": "escape",
+        "label": "再问一条共同的路",
+        "detail": "先说清卡姆兰，再问阿拉什是否愿意一起寻找另一条路",
+        "axis": "keep",
+        "motif": "两张车票",
+        "sound": "ticket",
+        "memory": "她最后问了一次，而他的沉默就是回答。",
+        "confirmation": "城市很大，却没有一条他们共同的出口。",
+        "nearEcho": "阿拉什赶到机场时仍带着两张旧公交票，像是误拿了某个本来可以成真的未来。",
+        "farEcho": "绿灯前，阿拉什把手从外套口袋里抽出来；那两张旧公交票仍夹在诗集末页。",
+        "endingFragment": "你让她最后一次伸手要一个共同未来。阿拉什没有接住，但那次请求使他们都无法把分离伪装成误会。",
+        "revisitEcho": "诗集末页，多了两张没能把他们带到同一个出口的公交票。"
+      },
+      {
+        "id": "conceal",
+        "label": "只说航班已经确定",
+        "detail": "只说航班已经确定，把卡姆兰的名字留在信封里",
+        "axis": "survive",
+        "motif": "行李牌",
+        "sound": "ticket",
+        "memory": "她省略了婚姻，把最锋利的部分留给自己。",
+        "confirmation": "她先确认了航班和登机口，才允许自己哭。",
+        "nearEcho": "安检口前阿拉什问还有没有别的事。莱拉握紧行李牌，说没有。登机广播仍准时响起。",
+        "farEcho": "路口，她先说卡姆兰正在等她；十三年前留在信封里的名字终于抵达街上。",
+        "endingFragment": "你让她保留了最后一点能继续行动的体面。隐瞒留下伤口，也让她在那个早晨没有失去离开的力气。",
+        "revisitEcho": "行李牌上的目的地清楚，告别里的原因仍然空白。"
+      }
+    ]
+  }
 ];
 
-export const choiceIds = ["choice-one","choice-two","choice-three"];
+/**
+ * 场景里保留的旧副本仅用于历史存档兼容；运行时始终挂接中央契约，
+ * 避免正文、剪辑室与结局各维护一份会漂移的选择文案。
+ */
+for (const scene of [...scenes, ...revisitScenes]) {
+  if (scene.choiceId && memoryContracts[scene.choiceId]) {
+    scene.choices = memoryContracts[scene.choiceId];
+  }
+  if (scene.resonanceId && resonanceContracts[scene.resonanceId]) {
+    scene.resonances = resonanceContracts[scene.resonanceId];
+  }
+}
+
+export type FutureEchoRoute = {
+  source: "choice" | "resonance";
+  /** kind mirrors source for page-level compatibility with V4 saves/components. */
+  kind?: "choice" | "resonance";
+  id: string;
+  field: "farEcho";
+};
+
+/** 每个场景最多兑现两条回响；视线本身只进入最终镜头，不在下一幕复述。 */
+export const futureEchoRoutes: Record<string, FutureEchoRoute[]> = {
+  "gaze": [
+    { source: "choice", kind: "choice", id: "choice-one", field: "farEcho" },
+    { source: "resonance", kind: "resonance", id: "email", field: "farEcho" },
+  ],
+  "book": [
+    { source: "resonance", kind: "resonance", id: "photo", field: "farEcho" },
+    { source: "choice", kind: "choice", id: "choice-two", field: "farEcho" },
+  ],
+  "crossroads": [
+    { source: "choice", kind: "choice", id: "choice-three", field: "farEcho" },
+  ],
+};
+
+export const choiceIds = [
+  "choice-one",
+  "choice-two",
+  "choice-three"
+];
+export const resonanceIds = [
+  "photo",
+  "email",
+  "gaze"
+];
+export const endings: Record<EndingKey,{title:string;reveal:string;body:string;coda:string}> = {
+  "speak": {
+    "title": "你让未说出口的事抵达",
+    "reveal": "说出 · 理想的前身",
+    "body": "你反复选择把诗、责任和真相交给另一个人。说出没有改写结局，却拒绝让沉默成为唯一版本。",
+    "coda": "话语不能使两条路重合，但能让分岔不再被误认成遗忘。"
+  },
+  "keep": {
+    "title": "你让被爱过的证据留下",
+    "reveal": "留住 · 爱情的形状",
+    "body": "你反复选择靠近、保存和请求共同未来。留住不是占有；它只是让已经发生的亲密不被后来的人生否认。",
+    "coda": "被保存的东西不要求人回去，只要求人承认它曾经存在。"
+  },
+  "survive": {
+    "title": "你让她有力气走到明天",
+    "reveal": "活下去 · 生存的动作",
+    "body": "你反复选择出口、安全和能继续行动的体面。活下去并不比理想低，也不比爱情轻；它让人仍有能力承担自己的选择。",
+    "coda": "离开不是胜利，但它把明天重新交回她手里。"
+  },
+  "mixed": {
+    "title": "你让三种记忆同时留下",
+    "reveal": "说出 · 留住 · 活下去",
+    "body": "三种动作在这一轮各出现一次：说出没有取消留住，留住也没有否定继续生活。它们并列，而不是互相裁决。",
+    "coda": "她没有让一种记忆替另外两种作证。"
+  }
+};
+export const unchosenFragments = [
+  {
+    "optionId": "poem",
+    "text": "有一版记忆里，电影恢复以前没有人靠近；只有工具盒里多了一道纸的折痕。"
+  },
+  {
+    "optionId": "burn",
+    "text": "有一版记忆里，她说出三个调查者早已圈出的名字；处分仍然没有减轻。"
+  },
+  {
+    "optionId": "escape",
+    "text": "有一版记忆里，两张公交票一直夹在诗集末页，没有把他们带到同一个出口。"
+  },
+  {
+    "optionId": "well",
+    "text": "有一版记忆里，邮件只写了“我很好”，然后整句被删除。"
+  }
+];
