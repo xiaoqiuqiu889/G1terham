@@ -9,7 +9,7 @@
                     "dev":  "vinext dev",
                     "build":  "vinext build",
                     "start":  "vinext start",
-                    "test":  "vinext build \u0026\u0026 node --test tests/game-logic.test.mjs tests/experience-structure.test.mjs tests/playthrough.test.mjs tests/rendered-html.test.mjs tests/v5-contract.test.mjs tests/v6-progression.test.mjs tests/v6-commerce.test.mjs",
+                    "test":  "vinext build \u0026\u0026 node --test tests/game-logic.test.mjs tests/experience-structure.test.mjs tests/playthrough.test.mjs tests/rendered-html.test.mjs tests/v5-contract.test.mjs tests/v6-progression.test.mjs tests/v6-commerce.test.mjs tests/story-graph.test.mjs",
                     "lint":  "eslint . --ignore-pattern dist --ignore-pattern .next",
                     "db:generate":  "drizzle-kit generate"
                 },

@@ -70,6 +70,23 @@ test("the interaction catalog contains fifteen authored interactions across five
   const chapterGain = progression.chapterContracts.reduce((sum, chapter) => sum + chapter.completionMemory, 0);
   assert.equal(authoredGain, 85, "the fifteen interactions should expose exactly 85 authored memory points");
   assert.equal(authoredGain + chapterGain, 100, "chapter completion bonuses should make a complete run reach 100");
+
+  const required = progression.firstRunRequiredInteractions();
+  const optional = progression.firstRunOptionalInteractions();
+  assert.equal(required.length, 10);
+  assert.deepEqual(optional.map(item => item.id), [
+    "publication-clues",
+    "discipline-record",
+    "departure-packing",
+    "dual-city-objects",
+    "receipt-memory-combination",
+  ]);
+  assert.ok(required.every(item => item.requirement === "required"));
+  assert.ok(optional.every(item => item.requirement === "optional"));
+  assert.deepEqual(progression.firstRunRequiredInteractions("chapter2").map(item => item.id), ["names-decision"]);
+  assert.deepEqual(progression.firstRunOptionalInteractions("chapter2").map(item => item.id), ["publication-clues", "discipline-record"]);
+  assert.equal(progression.firstRunRequiredMemory(), 75, "a mainline run should reach the archive threshold without optional detours");
+  assert.equal(progression.fullCollectionMemory(), 100, "all optional memories should complete the collection");
 });
 
 test("memory visibility tiers change only at 21, 41, 61 and 81", () => {
@@ -157,9 +174,9 @@ test("multi-object exploration contracts expose all three authored steps", () =>
     assert.equal(new Set(contract.steps).size, 3);
   }
   assert.match(pageSource, /const interactionsVisible=.*montageComplete.*scene\.progressive/s);
-  assert.match(pageSource, /if\(scene\.kind==="montage"\)\{\s*if\(!montageComplete\).*?if\(incompleteDiscoveryIds\.length\)return;/s);
-  assert.match(pageSource, /if\(scene\.progressive&&beatIndex<sceneBody\.length-1\).*?if\(incompleteDiscoveryIds\.length\)return;/s);
-  assert.match(pageSource, /disabled=\{.*?interactionsVisible&&incompleteDiscoveryIds\.length>0/s);
+  assert.match(pageSource, /if\(scene\.kind==="montage"\)\{\s*if\(!montageComplete\).*?if\(incompleteRequiredDiscoveryIds\.length\)return;/s);
+  assert.match(pageSource, /if\(scene\.progressive&&beatIndex<sceneBody\.length-1\).*?if\(incompleteRequiredDiscoveryIds\.length\)return;/s);
+  assert.match(pageSource, /disabled=\{.*?interactionsVisible&&incompleteRequiredDiscoveryIds\.length>0/s);
   assert.match(pageSource, /继续阅读/);
 });
 
@@ -177,6 +194,12 @@ test("legacy and partial profiles normalize into a safe V6 save", () => {
     },
     entitlements: {
       directDialogues: [firstDialogue.id, firstDialogue.id],
+      simulatedPurchases: [{
+        productId: "dialogue:" + firstDialogue.id,
+        priceFen: 100,
+        at: 15,
+        provider: "local-demo",
+      }],
     },
     paidContent: {
       impressionIds: [firstDialogue.id, firstDialogue.id],
@@ -197,6 +220,15 @@ test("legacy and partial profiles normalize into a safe V6 save", () => {
   assert.deepEqual(normalized.progression.axisValues, { speak: 2, keep: 0, survive: 0 });
   assert.deepEqual(normalized.entitlements.directDialogues, [firstDialogue.id]);
   assert.equal(normalized.entitlements.fullPass, false);
+  assert.deepEqual(normalized.entitlements.simulatedPurchases, [{
+    productId: "dialogue:" + firstDialogue.id,
+    priceFen: 100,
+    listPriceFen: 100,
+    creditFen: 0,
+    payableFen: 100,
+    at: 15,
+    provider: "local-demo",
+  }]);
   assert.deepEqual(normalized.paidContent.impressionIds, [firstDialogue.id]);
   assert.deepEqual(normalized.paidContent.completedIds, []);
   assert.equal(normalized.revisit.dailyFragmentClaimCount, 2, "old saves infer the claim counter from known fragments");

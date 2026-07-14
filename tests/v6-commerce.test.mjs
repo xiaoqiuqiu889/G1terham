@@ -21,6 +21,14 @@ test("five optional paid dialogue nodes are authored one per chapter", () => {
   assert.deepEqual(progression.paidDialogues.map(item => item.id), expectedIds);
   assert.equal(new Set(progression.paidDialogues.map(item => item.chapterId)).size, 5);
   assert.equal(new Set(progression.paidDialogues.map(item => item.anchorSceneId)).size, 5);
+  const marriage = progression.paidDialogues.find(item => item.id === "paid-marriage-truth");
+  assert.equal(marriage.chapterId, "chapter3");
+  assert.equal(marriage.anchorSceneId, "kamran");
+  assert.match(marriage.title, /视频挂断以前/);
+  assert.match(marriage.previewLine, /不是因为爱我/);
+  assert.match(marriage.lockedLines.join(" "), /离开的路/);
+  assert.match(marriage.lockedLines.join(" "), /认真和你生活/);
+  assert.match(marriage.lockedLines.join(" "), /不会把过去删掉/);
   for (const dialogue of progression.paidDialogues) {
     assert.ok(dialogue.previewLine, `${dialogue.id} needs a free preview line`);
     assert.ok(dialogue.lockedLines.length >= 2 && dialogue.lockedLines.length <= 4, `${dialogue.id} should lock two to four lines`);
@@ -40,6 +48,9 @@ test("simulated products use the required one-yuan, chapter and full-pass prices
   assert.deepEqual(purchased.entitlements.simulatedPurchases, [{
     productId: `dialogue:${dialogue.id}`,
     priceFen: 100,
+    listPriceFen: 100,
+    creditFen: 0,
+    payableFen: 100,
     at: 2000,
     provider: "local-demo",
   }]);
@@ -93,6 +104,17 @@ test("offer recommendations escalate from segment to chapter pack to full pass",
   const completedTwo = progression.completeChapter(completedOne, "chapter2").profile;
   assert.equal(progression.recommendOffer(completedTwo, third), "full-pass");
 
+  const offers = progression.availablePurchaseOffers(completedTwo, third);
+  assert.deepEqual(offers.map(item => item.productId), [
+    "dialogue:" + third.id,
+    "chapter:" + third.chapterId,
+    "full-pass",
+  ], "a recommendation must not hide lower-price alternatives");
+  assert.equal(offers.find(item => item.productId === "dialogue:" + third.id).scope, "next-line");
+  assert.equal(offers.find(item => item.productId === "full-pass").recommended, true);
+  assert.ok(offers.every(item => item.label && item.description));
+  assert.deepEqual(offers.map(item => item.listPriceFen), [100, 290, 990]);
+
   const directThird = progression.simulateLocalPurchase(completedTwo, `dialogue:${third.id}`);
   assert.equal(progression.recommendOffer(directThird, third), `chapter:${third.chapterId}`);
 
@@ -119,6 +141,22 @@ test("upgrade credit is transparent and never exceeds the target price", () => {
     creditFen: 100,
     displayFen: 190,
   });
+
+  const chapterUpgrade = progression.simulateLocalPurchase(sameChapter, "chapter:" + third.chapterId, 4000);
+  assert.deepEqual(chapterUpgrade.entitlements.simulatedPurchases.at(-1), {
+    productId: "chapter:" + third.chapterId,
+    priceFen: 290,
+    listPriceFen: 290,
+    creditFen: 100,
+    payableFen: 190,
+    at: 4000,
+    provider: "local-demo",
+  });
+  assert.deepEqual(progression.computeUpgradeCredit(chapterUpgrade, "full-pass"), {
+    paidFen: 990,
+    creditFen: 290,
+    displayFen: 700,
+  }, "a direct line already absorbed by its chapter pack must not be credited twice");
 
   const saturated = {
     ...profile,

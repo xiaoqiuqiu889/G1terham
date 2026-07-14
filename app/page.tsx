@@ -17,10 +17,10 @@ import {
 import {
   buildChapterSummary, chapterContractById, chapterMemoryGain, chapterRewardById, claimChapterReward,
   claimDailyFragment, claimedRewardIds, completeChapter as completeProfileChapter,
-  completeInteraction as completeProfileInteraction, computeUpgradeCredit, createInitialProfile,
+  completeInteraction as completeProfileInteraction, availablePurchaseOffers, createInitialProfile,
   hasDialogueAccess, interactionById, interactionsByScene, markChapterRevisit, markPaidComplete,
   markPaidImpression, markPaidSkipped, markSpecialEpilogueViewed, nextMemoryUnlock, normalizeProfile,
-  hasFullDialogueAccess, paidDialogueById, paidDialogues, ProfileStateV6, ProductId, recommendOffer,
+  hasFullDialogueAccess, paidDialogueById, paidDialogues, ProfileStateV6, ProductId,
   setAxisValues, simulateLocalPurchase, unresolvedDialogueCount, visibleDialogueLineCount, ChapterId, PaidDialogueId,
 } from "./progression";
 import { trackEvent } from "./analytics";
@@ -90,20 +90,17 @@ function interactionView(id:string):InteractionView|null{
   if(!item)return null;
   return {
     id:item.id,title:item.title,prompt:item.prompt,kind:item.kind,actionLabel:item.action,
-    reveal:item.completion,steps:item.steps,
+    reveal:item.completion,steps:item.steps,optional:item.requirement==="optional",
     reward:{memory:item.memoryGain,clueId:item.clue?.id,collectibleId:item.collectible?.id},
   };
 }
 
 function dialogueView(id:PaidDialogueId):PaidDialogueView{
   const item=paidDialogueById[id];
-  return {id:item.id,title:item.title,previewLine:item.previewLine,lockedLines:item.lockedLines,archiveTitle:item.archiveTitle};
+  return {id:item.id,title:item.title,previewLine:item.previewLine,lockedLines:item.lockedLines,archiveTitle:item.archiveTitle,chapterLabel:chapterContractById[item.chapterId].label.split(" · ")[0]};
 }
 
-function offerCopy(productId:ProductId,displayFen:number){
-  const label=productId==="full-pass"?"完整回忆通行证":productId.startsWith("chapter:")?"本章对白包":"解锁这一段";
-  return {label,price:`¥${(displayFen/100).toFixed(displayFen%100===0?0:1)}`};
-}
+function formatOfferPrice(displayFen:number){return `¥${(displayFen/100).toFixed(displayFen%100===0?0:1)}`;}
 
 export default function Home(){
   const [started,setStarted]=useState(false);
@@ -134,6 +131,7 @@ export default function Home(){
   const [pendingChapterId,setPendingChapterId]=useState<ChapterId|null>(null);
   const [dailyFragment,setDailyFragment]=useState<string|null>(null);
   const [specialEpilogueOpen,setSpecialEpilogueOpen]=useState(false);
+  const [skipPromptSceneId,setSkipPromptSceneId]=useState<string|null>(null);
   const profileRef=useRef(profile);
   const runInteractionsRef=useRef(runInteractionIds);
   const sceneEventRef=useRef("");
@@ -157,15 +155,16 @@ export default function Home(){
     .map(id=>interactionById[id]).filter((item):item is NonNullable<typeof item>=>Boolean(item)):[];
   const discoveryContracts=sceneInteractionContracts.filter(item=>!item.handledByScene);
   const discoveryViews=discoveryContracts.map(item=>interactionView(item.id)).filter((item):item is InteractionView=>Boolean(item));
-  const incompleteDiscoveryIds=discoveryContracts.filter(item=>!runInteractionIds.includes(item.id)).map(item=>item.id);
+  const incompleteRequiredDiscoveryIds=discoveryContracts.filter(item=>item.requirement==="required"&&!runInteractionIds.includes(item.id)).map(item=>item.id);
+  const incompleteOptionalDiscoveryIds=discoveryContracts.filter(item=>item.requirement==="optional"&&!runInteractionIds.includes(item.id)).map(item=>item.id);
   const sceneChapterId=(sceneInteractionContracts[0]?.chapterId||(scene?.chapter.startsWith("chapter")?scene.chapter:null)) as ChapterId|null;
   const memoryUnlock=nextMemoryUnlock(profile.progression.memoryExposure);
   const activePaid= pendingPaidId?paidDialogueById[pendingPaidId]:null;
   const activePaidHasFullAccess=activePaid?hasFullDialogueAccess(profile.entitlements,activePaid):false;
   const activePaidLineCount=activePaid?visibleDialogueLineCount(profile.entitlements,activePaid):0;
-  const recommendedProduct=activePaid?recommendOffer(profile,activePaid):null;
-  const activeOffer=recommendedProduct?computeUpgradeCredit(profile,recommendedProduct):null;
-  const activeOfferCopy=recommendedProduct&&activeOffer?offerCopy(recommendedProduct,activeOffer.displayFen):null;
+  const activePurchaseOffers=useMemo(()=>activePaid?availablePurchaseOffers(profile,activePaid):[],[activePaid,profile]);
+  const activeOfferViews=activePurchaseOffers.map(item=>({productId:item.productId,label:item.label,description:item.description,price:formatOfferPrice(item.payableFen),creditText:item.creditFen>0?`已抵扣 ¥${(item.creditFen/100).toFixed(1)}`:undefined,recommended:item.recommended}));
+  const activeOfferSignature=activePurchaseOffers.map(item=>item.productId).join("|");
   const settlementSummary=pendingChapterId?buildChapterSummary(profile,pendingChapterId):null;
 
   const sceneBody=useMemo(()=>{
@@ -297,12 +296,14 @@ export default function Home(){
   },[started,finished,scene,sceneIndex,mode]);
 
   useEffect(()=>{
-    if(!activePaid||!recommendedProduct)return;
-    const signature=activePaid.id+":"+recommendedProduct;
+    if(!activePaid||!activeOfferSignature)return;
+    const signature=activePaid.id+":"+activeOfferSignature;
     if(paidEventRef.current===signature)return;paidEventRef.current=signature;
-    if(recommendedProduct.startsWith("chapter:"))trackEvent("chapter_pack_impression",{dialogueId:activePaid.id,productId:recommendedProduct});
-    if(recommendedProduct==="full-pass")trackEvent("full_pass_impression",{dialogueId:activePaid.id,productId:recommendedProduct});
-  },[activePaid,recommendedProduct]);
+    for(const offer of activePurchaseOffers){
+      if(offer.productId.startsWith("chapter:"))trackEvent("chapter_pack_impression",{dialogueId:activePaid.id,productId:offer.productId});
+      if(offer.productId==="full-pass")trackEvent("full_pass_impression",{dialogueId:activePaid.id,productId:offer.productId});
+    }
+  },[activePaid,activeOfferSignature,activePurchaseOffers]);
 
 
   const startSound=async()=>{
@@ -322,7 +323,7 @@ export default function Home(){
     const contract=interactionById[interactionId];if(!contract)return;
     const previous=profileRef.current;const mutation=completeProfileInteraction(previous,interactionId);
     const nextRun=[...runInteractionsRef.current,interactionId];
-    runInteractionsRef.current=nextRun;setRunInteractionIds(nextRun);commitProfile(mutation.profile);
+    runInteractionsRef.current=nextRun;setRunInteractionIds(nextRun);setSkipPromptSceneId(null);commitProfile(mutation.profile);
     trackEvent("interaction_complete",{interactionId,sceneId:scene?.id||contract.sceneId,kind:contract.kind,newToProfile:mutation.changed});
     if(mutation.changed){
       trackEvent("memory_value_change",{source:interactionId,delta:mutation.memoryGained,value:mutation.profile.progression.memoryExposure});
@@ -338,7 +339,7 @@ export default function Home(){
     setEndingRevealed(false);setGazeFocus(null);setProjectorStep(0);recordedRef.current="";setComparisonBase(base);
     setResonances(nextMode==="revisit-quick"?(base?.resonances||{}):{});
     runInteractionsRef.current=[];setRunInteractionIds([]);setResolvedPaidIds([]);setSettledChapterIds([]);
-    setPendingPaidId(null);setPendingChapterId(null);setDailyFragment(null);setSpecialEpilogueOpen(false);
+    setPendingPaidId(null);setPendingChapterId(null);setDailyFragment(null);setSpecialEpilogueOpen(false);setSkipPromptSceneId(null);
     localStorage.removeItem(SAVE_KEY);
     if(nextMode!=="full")trackEvent("revisit_start",{mode:nextMode,previousEnding:base?.ending||null});
     if(enableSound)void startSound();
@@ -367,14 +368,14 @@ export default function Home(){
       audioRef.current?.cue("transition");trackEvent("next_chapter_start",{sceneId:nextScene.id,chapter:nextScene.chapter});
       if(isRevisitMode(mode)&&nextScene.chapter.startsWith("chapter"))commitProfile(markChapterRevisit(profileRef.current,nextScene.chapter as ChapterId));
     }
-    setSceneIndex(next);setBeatIndex(0);setEchoReady(false);setGazeFocus(null);
+    setSceneIndex(next);setBeatIndex(0);setEchoReady(false);setGazeFocus(null);setSkipPromptSceneId(null);
   };
 
   const openChapterSettlement=(chapterId:ChapterId)=>{
     const mutation=completeProfileChapter(profileRef.current,chapterId);commitProfile(mutation.profile);
     setPendingChapterId(chapterId);
     trackEvent("chapter_complete",{chapterId,memory:mutation.profile.progression.memoryExposure,newCompletion:mutation.changed},"run:"+mode+":"+chapterId);
-    trackEvent("chapter_reward_reveal",{chapterId,code:chapterRewardById[chapterId].code},"run:"+mode+":"+chapterId);
+    trackEvent("chapter_reward_reveal",{chapterId,rewardId:chapterRewardById[chapterId].sourceSceneId},"run:"+mode+":"+chapterId);
     if(mutation.memoryGained)trackEvent("memory_value_change",{source:"chapter:"+chapterId,delta:mutation.memoryGained,value:mutation.profile.progression.memoryExposure});
   };
 
@@ -387,7 +388,8 @@ export default function Home(){
   };
 
   const requestSceneExit=()=>{
-    if(incompleteDiscoveryIds.length)return;
+    if(incompleteRequiredDiscoveryIds.length)return;
+    if(incompleteOptionalDiscoveryIds.length&&skipPromptSceneId!==scene.id){setSkipPromptSceneId(scene.id);return}
     if(scene.paidDialogueId&&!resolvedPaidIds.includes(scene.paidDialogueId)){
       const paid=paidDialogueById[scene.paidDialogueId as PaidDialogueId];if(paid){
         const updated=markPaidImpression(profileRef.current,paid.id);commitProfile(updated);setPendingPaidId(paid.id);
@@ -407,11 +409,11 @@ export default function Home(){
     if(scene.kind==="revisitEcho"&&!echoReady)return;
     if(scene.kind==="montage"){
       if(!montageComplete){setBeatIndex(Math.max(0,montageBeats.length-1));return}
-      if(incompleteDiscoveryIds.length)return;
+      if(incompleteRequiredDiscoveryIds.length)return;
       requestSceneExit();return;
     }
     if(scene.progressive&&beatIndex<sceneBody.length-1){setBeatIndex(value=>value+1);return}
-    if(incompleteDiscoveryIds.length)return;
+    if(incompleteRequiredDiscoveryIds.length)return;
     requestSceneExit();
   };
 
@@ -457,19 +459,20 @@ export default function Home(){
     setAnswers(previous.answers);setResonances(previous.resonances);
     runInteractionsRef.current=previous.runInteractionIds||[];setRunInteractionIds(previous.runInteractionIds||[]);
     setProjectorStep(previous.projectorStep||0);
-    setHistory(value=>value.slice(0,-1));setEndingRevealed(false);
+    setHistory(value=>value.slice(0,-1));setEndingRevealed(false);setSkipPromptSceneId(null);
   };
 
-  const purchaseActiveDialogue=()=>{
-    if(!activePaid||!recommendedProduct)return;
-    trackEvent("paid_dialogue_unlock_click",{dialogueId:activePaid.id,productId:recommendedProduct,simulated:true});
-    if(recommendedProduct.startsWith("chapter:"))trackEvent("chapter_pack_click",{dialogueId:activePaid.id,productId:recommendedProduct});
-    if(recommendedProduct==="full-pass")trackEvent("full_pass_click",{dialogueId:activePaid.id,productId:recommendedProduct});
-    commitProfile(simulateLocalPurchase(profileRef.current,recommendedProduct));
+  const purchaseActiveDialogue=(requestedProductId?:string)=>{
+    if(!activePaid)return;
+    const productId=(requestedProductId||activePurchaseOffers.find(item=>item.recommended)?.productId||activePurchaseOffers[0]?.productId) as ProductId|undefined;if(!productId)return;
+    trackEvent("paid_dialogue_unlock_click",{dialogueId:activePaid.id,productId,simulated:true});
+    if(productId.startsWith("chapter:"))trackEvent("chapter_pack_click",{dialogueId:activePaid.id,productId});
+    if(productId==="full-pass")trackEvent("full_pass_click",{dialogueId:activePaid.id,productId});
+    commitProfile(simulateLocalPurchase(profileRef.current,productId));
   };
   const claimSettlementReward=()=>{
     if(!pendingChapterId)return;commitProfile(claimChapterReward(profileRef.current,pendingChapterId));
-    trackEvent("chapter_reward_claim",{chapterId:pendingChapterId,code:chapterRewardById[pendingChapterId].code});
+    trackEvent("chapter_reward_claim",{chapterId:pendingChapterId,rewardId:chapterRewardById[pendingChapterId].sourceSceneId});
   };
   const copySettlementReward=()=>{
     if(!pendingChapterId)return;void navigator.clipboard?.writeText(chapterRewardById[pendingChapterId].code);
@@ -551,15 +554,15 @@ export default function Home(){
           :scene.kind==="resonance"&&scene.resonanceId==="email"?<EmailInteraction options={scene.resonances||[]} selected={selectedOption} ready={confirmationReady} previous={comparisonBase?.resonances.email} mode={mode} onSelect={selectOption} onCommit={commitSelection}/>
           :scene.kind==="resonance"&&scene.resonanceId==="gaze"?<GazeInteraction options={scene.resonances||[]} selected={selectedOption} ready={confirmationReady} previous={comparisonBase?.resonances.gaze} mode={mode} onFocus={setGazeFocus} onSelect={selectOption} onCommit={commitSelection}/>
           :scene.id==="campus"?<><ProjectorRepair step={projectorStep} onStep={()=>{const next=Math.min(2,projectorStep+1);if(projectorStep===0)trackEvent("interaction_start",{interactionId:"projector-repair",sceneId:scene.id,kind:"projector"},"run:"+mode+":projector-repair");setProjectorStep(next);if(next>=2)completeRunInteraction("projector-repair");audioRef.current?.texture("projector");audioRef.current?.motif(projectorStep===1?"photo":"paper")}}/>{projectorStep>=2&&<button className="continue-button" onClick={advance}>让画面继续 <span>→</span></button>}</>
-          :<button className="continue-button" disabled={(scene.kind==="revisitEcho"&&!echoReady)||(interactionsVisible&&incompleteDiscoveryIds.length>0)} onClick={advance}>
-            {scene.kind==="montage"&&!montageComplete?"显示全部":scene.progressive&&beatIndex<sceneBody.length-1?"继续阅读":interactionsVisible&&incompleteDiscoveryIds.length?"先完成这一幕的互动":scene.kind==="revisitEcho"&&!echoReady?"让回声停留片刻":"继续"} <span>→</span>
-          </button>}
+          :<>{interactionsVisible&&skipPromptSceneId===scene.id&&incompleteOptionalDiscoveryIds.length>0&&<p className="optional-skip-note" role="status">还有 {incompleteOptionalDiscoveryIds.length} 段记忆没有显影。现在离开不会影响主线与结局；重访时仍可补回。</p>}<button className="continue-button" disabled={(scene.kind==="revisitEcho"&&!echoReady)||(interactionsVisible&&incompleteRequiredDiscoveryIds.length>0)} onClick={advance}>
+            {scene.kind==="montage"&&!montageComplete?"显示全部":scene.progressive&&beatIndex<sceneBody.length-1?"继续阅读":interactionsVisible&&incompleteRequiredDiscoveryIds.length?"先完成关键互动":scene.kind==="revisitEcho"&&!echoReady?"让回声停留片刻":interactionsVisible&&incompleteOptionalDiscoveryIds.length?(skipPromptSceneId===scene.id?"仍然离开 · 留待重访":"继续 · 可留待重访"):"继续"} <span>→</span>
+          </button></>}
         </div>
         <div className="progress-track" role="progressbar" aria-label="故事进度" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><div style={{width:`${progress}%`}}/></div>
       </section>}
       {started&&!finished&&<MemoryHUD memory={profile.progression.memoryExposure} chapterGain={sceneChapterId?chapterMemoryGain(profile,sceneChapterId):0} nextUnlock={memoryUnlock} collectibles={profile.progression.collectibleIds.length} unlockedDialogues={paidDialogues.filter(item=>hasDialogueAccess(profile.entitlements,item)).length} rewards={claimedRewardIds(profile).length}/>}
-      {activePaid&&<PaidDialogueOverlay dialogue={dialogueView(activePaid.id)} unlockedLineCount={activePaidLineCount} fullAccess={activePaidHasFullAccess} offer={activeOfferCopy?{...activeOfferCopy,creditText:activeOffer&&activeOffer.creditFen>0?`已解锁内容可抵扣 ¥${(activeOffer.creditFen/100).toFixed(1)}；本地演示不会产生真实扣款。`:"本地解锁演示，不会产生真实扣款。"}:undefined} onUnlock={purchaseActiveDialogue} onSkip={()=>continueAfterPaid(activePaid.id,false)} onContinue={()=>continueAfterPaid(activePaid.id,true)}/>}
-      {pendingChapterId&&settlementSummary&&<ChapterSettlementOverlay chapterLabel={chapterContractById[pendingChapterId].label} memoryEarned={settlementSummary.memoryEarned} collectibleCount={settlementSummary.collectibleIds.length} missedDialogueCount={settlementSummary.lockedPaidCount} reward={chapterRewardById[pendingChapterId]} rewardIndex={Number(pendingChapterId.replace("chapter",""))} claimed={profile.progression.chapterRewards[pendingChapterId]==="claimed"} nextTeaser={settlementSummary.nextTeaser} onClaim={claimSettlementReward} onCopy={copySettlementReward} onContinue={continueSettlement}/>}
+      {activePaid&&<PaidDialogueOverlay dialogue={dialogueView(activePaid.id)} unlockedLineCount={activePaidLineCount} fullAccess={activePaidHasFullAccess} offers={activeOfferViews} onUnlock={purchaseActiveDialogue} onSkip={()=>continueAfterPaid(activePaid.id,false)} onContinue={()=>continueAfterPaid(activePaid.id,true)}/>}
+      {pendingChapterId&&settlementSummary&&<ChapterSettlementOverlay chapterLabel={chapterContractById[pendingChapterId].label} memoryEarned={settlementSummary.memoryEarned} collectibleCount={settlementSummary.collectibleIds.length} missedDialogueCount={settlementSummary.lockedPaidCount} reward={chapterRewardById[pendingChapterId]} chapterIndex={Number(pendingChapterId.replace("chapter",""))} collectedRewardCount={claimedRewardIds(profile).length} claimed={profile.progression.chapterRewards[pendingChapterId]==="claimed"} nextTeaser={settlementSummary.nextTeaser} onClaim={claimSettlementReward} onCopy={copySettlementReward} onContinue={continueSettlement}/>}
       {journalOpen&&<Journal answers={answers} resonances={resonances} unlocked={unlocked} profile={profile} onSpecialEpilogue={openSpecialEpilogue} onChapterRevisit={startChapterRevisit} onClose={()=>setJournalOpen(false)} closeRef={journalCloseRef}/>}
       {specialEpilogueOpen&&!finished&&<SpecialEpilogueOverlay onClose={()=>setSpecialEpilogueOpen(false)}/>}
     </div>
@@ -753,7 +756,7 @@ function Journal({answers,resonances,unlocked,profile,onSpecialEpilogue,onChapte
       <div className="memory-notes">{items.length?items.map((item,index)=><article key={index}><span>0{index+1} · {item.motif}</span><p>{"memory" in item?item.memory:item.echo}</p></article>):<p className="empty-memory">照片、诗页、灰烬与车票还没有决定自己的位置。</p>}</div>
       {!unlocked?<div className="memory-weather"><p className="weather-title">记忆天气</p>{weather.map(item=><div key={item.label}><span>{item.label}</span><strong>{item.value}</strong></div>)}</div>
       :<div className="axis-reveal"><p>通关后解锁 · 三种动作</p>{(["speak","keep","survive"] as Axis[]).map(axis=><article key={axis}><span>{axisNames[axis]}</span><strong>{axisExplanations[axis]}</strong><i>{scores[axis]===0?"未进入本轮":scores[axis]===1?"留下痕迹":"成为主调"}</i></article>)}</div>}
-      <ArchiveProgress memory={profile.progression.memoryExposure} nextUnlock={nextMemoryUnlock(profile.progression.memoryExposure)} completedChapters={profile.progression.completedChapterIds.map(id=>chapterContractById[id].label)} collectibles={profile.progression.collectibleIds} rewards={claimedRewardIds(profile).map(id=>chapterRewardById[id].code)} unlockedDialogues={paidDialogues.filter(item=>hasDialogueAccess(profile.entitlements,item)).map(item=>item.id)} paidItems={paidDialogues.map(item=>dialogueView(item.id))} paidLineVisibility={Object.fromEntries(paidDialogues.map(item=>[item.id,visibleDialogueLineCount(profile.entitlements,item)]))} previewVisible={profile.progression.memoryExposure>=61} specialEpilogueAvailable={profile.revisit.specialEpilogue!=="locked"} onSpecialEpilogue={()=>{onClose();onSpecialEpilogue()}}/>
+      <ArchiveProgress memory={profile.progression.memoryExposure} nextUnlock={nextMemoryUnlock(profile.progression.memoryExposure)} completedChapters={profile.progression.completedChapterIds.map(id=>chapterContractById[id].label)} collectibles={profile.progression.collectibleIds} rewards={claimedRewardIds(profile).map(id=>chapterRewardById[id].code)} unlockedDialogues={paidDialogues.filter(item=>hasDialogueAccess(profile.entitlements,item)).map(item=>item.id)} encounteredDialogues={profile.paidContent.impressionIds} paidItems={paidDialogues.map(item=>dialogueView(item.id))} paidLineVisibility={Object.fromEntries(paidDialogues.map(item=>[item.id,visibleDialogueLineCount(profile.entitlements,item)]))} previewVisible={profile.progression.memoryExposure>=61} specialEpilogueAvailable={profile.revisit.specialEpilogue!=="locked"} onSpecialEpilogue={()=>{onClose();onSpecialEpilogue()}}/>
       {profile.progression.completedChapterIds.length>0&&<div className="ending-actions">{profile.progression.completedChapterIds.map(id=><button key={id} className="ghost-button" onClick={()=>{onClose();onChapterRevisit(id)}}>重访{chapterContractById[id].label.split(" · ")[0]}</button>)}</div>}
       <button className="start-button compact" onClick={onClose}>回到故事</button>
     </section>

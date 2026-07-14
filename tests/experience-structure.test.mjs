@@ -86,12 +86,36 @@ test("memory editing room compares future echoes after a five-second pause", () 
 });
 
 test("prop and character continuity is explicit", () => {
-  assert.match(storySource, /冲洗了两张相同的照片/);
+  assert.match(storySource, /冲洗了两张(?:相同的|同版)照片/);
   assert.match(storySource, /六个月后获释/);
   assert.match(storySource, /父亲中风/);
   assert.match(storySource, /空荡的停车场/);
   assert.match(storySource, /记录流星/);
   assert.doesNotMatch(storySource, /选择没有改变/);
+});
+
+test("photo reveal, arrival message and marriage dialogue keep their chronology", () => {
+  const photo = story.scenes.find(scene => scene.id === "photo");
+  const photoImmediateCopy = [
+    ...(photo?.body ?? []),
+    ...(photo?.resonances ?? []).flatMap(option => [
+      option.label, option.detail, option.action, option.echo, option.confirmation,
+    ].filter(Boolean)),
+  ].join(" ");
+  assert.doesNotMatch(photoImmediateCopy, /两张|另一张|同版/);
+
+  const promiseCopy = story.scenes.find(scene => scene.id === "promise")?.body?.join(" ") ?? "";
+  assert.match(promiseCopy, /冲洗了两张同版照片/);
+  assert.match(promiseCopy, /莱拉带走一张，阿拉什把另一张夹进诗集/);
+
+  const airportCopy = story.scenes.find(scene => scene.id === "echo-three")?.body?.join(" ") ?? "";
+  assert.match(airportCopy, /阿拉什发来一条迟到的信息：“我到了。”/);
+  const sanJoseCopy = story.scenes.find(scene => scene.id === "two-cities")?.beats?.join(" ") ?? "";
+  assert.match(sanJoseCopy, /航班落地了。我在取行李。/);
+  assert.doesNotMatch(sanJoseCopy, /给卡姆兰发：“我到了。”/);
+
+  assert.equal(story.scenes.find(scene => scene.id === "kamran")?.paidDialogueId, "paid-marriage-truth");
+  assert.notEqual(story.scenes.find(scene => scene.id === "last-email")?.paidDialogueId, "paid-marriage-truth");
 });
 
 test("first-run journal hides axes while post-game unlocks explanations", () => {
