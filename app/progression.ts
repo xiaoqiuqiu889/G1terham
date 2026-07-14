@@ -56,24 +56,24 @@ export const interactionCatalog: readonly InteractionContract[] = [
   }),
   interaction({
     id: "publication-clues", chapterId: "chapter2", sceneId: "publication", kind: "explore", requirement: "optional",
-    title: "检查刊物桌面", prompt: "在打字机色带、退稿信和被折起的名单边缘之间寻找玛兹雅留下的线索。",
+    title: "检查刊物桌面", prompt: "查看打字机、退稿信和刊物末页，弄清学校为什么传唤他们。",
     action: "依次查看三个有用途的物件。", steps: ["触摸打字机上发干的色带", "展开出版社退回的信", "掀起刊物最后一页的折角"],
-    completion: "最后一页下面压着二十八个名字。门外的脚步越来越近。", memoryGain: 5,
-    clue: { id: "maziya-last-note", label: "玛兹雅的页边字", text: "她写：如果我没回来，别让这些名字只出现一次。" },
-    collectible: { id: "publication-margin", label: "刊物页边", motif: "paper", description: "印着半句被裁掉的诗，也压过名单。" },
+    completion: "刊物报道了三名失踪学生。第二天，学校开始追问其他编辑是谁。", memoryGain: 5,
+    clue: { id: "maziya-last-note", label: "玛兹雅的页边字", text: "她写：如果我没回来，先把这一期保存好。" },
+    collectible: { id: "publication-margin", label: "刊物页边", motif: "paper", description: "印着半句被裁掉的诗和玛兹雅画下的蓝色太阳。" },
   }),
   interaction({
     id: "names-decision", chapterId: "chapter2", sceneId: "choice-two", kind: "choice", requirement: "required", handledByScene: true, isCore: true,
-    title: "处理二十八个名字", prompt: "让名单越过校门、藏进诗集，或在搜查前变成灰。",
-    action: "承担一种收益，也承担它留下的代价。", completion: "门把转动。无论纸去了哪里，莱拉都必须回答桌上曾经有什么。", memoryGain: 7,
-    clue: { id: "twenty-eight-names", label: "二十八个名字", text: "纸张能被转移、藏起或烧毁；名字从此会以不同方式回来。" },
+    title: "是否告发同伴", prompt: "只承认自己、拒绝告发，或说出同伴的名字。",
+    action: "承担一种收益，也承担它留下的代价。", completion: "记录员合上本子。无论她怎样回答，处分程序都会继续。", memoryGain: 7,
+    clue: { id: "twenty-eight-names", label: "问话记录", text: "调查者问谁参与了刊物；她的回答会在多年后以不同方式回来。" },
   }),
   interaction({
     id: "discipline-record", chapterId: "chapter2", sceneId: "echo-two", kind: "explore", requirement: "optional",
-    title: "翻看纪律记录", prompt: "从印章日期、缺席名单和释放通知中确认玛兹雅的去向。",
+    title: "翻看纪律记录", prompt: "从印章日期、缺席记录和释放通知中确认玛兹雅的去向。",
     action: "把三处记录按时间排好。", steps: ["核对带走当夜的印章日期", "把六个月缺席记录接在后面", "最后展开设拉子寄来的释放通知"],
     completion: "玛兹雅六个月后获释，没有回到大学。她后来在设拉子的儿童图书馆工作。", memoryGain: 6,
-    clue: { id: "maziya-fixed-future", label: "玛兹雅的后来", text: "她活了下来，也失去了原来的生活。名单的处理方式不会改写这个结果。" },
+    clue: { id: "maziya-fixed-future", label: "玛兹雅的后来", text: "她活了下来，也失去了原来的生活。莱拉在问话室里的回答不会改写这个结果。" },
     collectible: { id: "discipline-stamp", label: "纪律委员会印章拓片", motif: "ash", description: "红色印泥盖住了莱拉的继续深造资格。" },
   }),
   interaction({
@@ -210,7 +210,7 @@ export interface ChapterRewardContract {
 
 export const chapterRewards: readonly ChapterRewardContract[] = [
   { chapterId: "chapter1", sourceSceneId: "promise", prop: "照片背面的冲印批次号", code: "JD-DEMO-LOVE-01", nextHint: "下一枚藏在一页不该有压痕的旧书里。", disclaimer: "演示礼包码，无实际面值，暂不可兑换。" },
-  { chapterId: "chapter2", sourceSceneId: "after-gate", prop: "名单压痕与诗集页码", code: "JD-DEMO-NAMES-02", nextHint: "下一枚字符，跟着一张只写目的地的行李牌。", disclaimer: "演示礼包码，无实际面值，暂不可兑换。" },
+  { chapterId: "chapter2", sourceSceneId: "after-gate", prop: "处分通知的档案编号", code: "JD-DEMO-NAMES-02", nextHint: "下一枚字符，跟着一张只写目的地的行李牌。", disclaimer: "演示礼包码，无实际面值，暂不可兑换。" },
   { chapterId: "chapter3", sourceSceneId: "echo-three", prop: "单程行李牌背面的字符", code: "JD-DEMO-ROAD-03", nextHint: "下一枚不在一座城市里。找两处相同的时间。", disclaimer: "演示礼包码，无实际面值，暂不可兑换。" },
   { chapterId: "chapter4", sourceSceneId: "last-email", prop: "未发送邮件的系统元数据", code: "JD-DEMO-CITIES-04", nextHint: "最后一枚藏在一杯茶和两张旧纸之间。", disclaimer: "演示礼包码，无实际面值，暂不可兑换。" },
   { chapterId: "chapter5", sourceSceneId: "crossroads", prop: "咖啡小票底部的纪念编码", code: "JD-DEMO-MEMORY-05", nextHint: "5/5。终章纪念礼物待解锁。", disclaimer: "演示礼包码，无实际面值，暂不可兑换。" },
@@ -228,8 +228,8 @@ export interface ChapterContract {
 }
 
 export const chapterContracts: readonly ChapterContract[] = [
-  { id: "chapter1", label: "第一章 · 革命街上的恋人", emotionalTask: "相信他们曾经真的幸福。", coreInteractionId: "projector-repair", endSceneId: "promise", completionMemory: 3, nextTeaser: "那张纸上将出现二十八个名字。", revisitChange: "投影里会多出你上轮保存的第一个动作。" },
-  { id: "chapter2", label: "第二章 · 知识变成证据", emotionalTask: "看见分开并非不爱。", coreInteractionId: "names-decision", endSceneId: "after-gate", completionMemory: 3, nextTeaser: "一张单程行李牌正在等她签字。", revisitChange: "诗页残迹会按名单的去向改变。" },
+  { id: "chapter1", label: "第一章 · 革命街上的恋人", emotionalTask: "相信他们曾经真的幸福。", coreInteractionId: "projector-repair", endSceneId: "promise", completionMemory: 3, nextTeaser: "学校会问：谁和你一起做了刊物？", revisitChange: "投影里会多出你上轮保存的第一个动作。" },
+  { id: "chapter2", label: "第二章 · 知识变成证据", emotionalTask: "看见分开并非不爱。", coreInteractionId: "names-decision", endSceneId: "after-gate", completionMemory: 3, nextTeaser: "一张单程行李牌正在等她签字。", revisitChange: "处分记录会按她当年的回答改变。" },
   { id: "chapter3", label: "第三章 · 只有一个人能够离开", emotionalTask: "亲手完成一次遗憾。", coreInteractionId: "airport-goodbye", endSceneId: "echo-three", completionMemory: 3, nextTeaser: "两座城市会在同一天留下相同编号。", revisitChange: "机场会记住你松手的时刻。" },
   { id: "chapter4", label: "第四章 · 两个城市", emotionalTask: "看见两人都保留着同一段记忆。", coreInteractionId: "email-draft", endSceneId: "last-email", completionMemory: 3, nextTeaser: "咖啡馆里，有人带来了另一张照片。", revisitChange: "被删掉的句子会以残影重新出现。" },
   { id: "chapter5", label: "第五章 · 伊斯坦布尔重逢", emotionalTask: "让重逢成为迟到十三年的回答。", coreInteractionId: "photo-pairing", endSceneId: "crossroads", completionMemory: 3, nextTeaser: "完整卷宗与特别尾声等待显影。", revisitChange: "桌面会尊重你最初放置照片的方向。" },
@@ -315,6 +315,11 @@ export function createInitialProfile(now=Date.now()):ProfileStateV6 {
 }
 function unique<T>(items:T[]){return Array.from(new Set(items))}
 function normalizeChapterRecord<T>(value:Partial<Record<ChapterId,T>>|undefined,fallback:()=>Record<ChapterId,T>){return{...fallback(),...(value||{})}}
+function normalizeDailyFragmentId(id:string):string {
+  const legacyIndex=Number(id);
+  if(!Number.isInteger(legacyIndex)||String(legacyIndex)!==id)return id;
+  return dailyFragmentEntries[legacyIndex]?.id||id;
+}
 function normalizeSimulatedPurchase(item:SimulatedPurchase):SimulatedPurchase {
   const legacyPrice=Number.isFinite(item.priceFen)?item.priceFen:priceForProduct(item.productId);
   const listPriceFen=Math.max(0,Math.round(Number.isFinite(item.listPriceFen)?item.listPriceFen:legacyPrice));
@@ -331,7 +336,7 @@ export function normalizeProfile(input:Partial<ProfileStateV6>|null|undefined,no
     progression:{...base.progression,...progression,memoryExposure:clampMemory(progression.memoryExposure||0),completedInteractionIds:unique(progression.completedInteractionIds||[]),discoveredClueIds:unique(progression.discoveredClueIds||[]),collectibleIds:unique(progression.collectibleIds||[]),completedChapterIds:unique((progression.completedChapterIds||[]).filter(id=>chapterIds.includes(id))),chapterRewards:normalizeChapterRecord(progression.chapterRewards,rewardStatuses),chapterMemory:normalizeChapterRecord(progression.chapterMemory,emptyChapterMemory),axisValues:{...base.progression.axisValues,...(progression.axisValues||{})}},
     entitlements:{...base.entitlements,...entitlements,directDialogues:unique(entitlements.directDialogues||[]),chapterPacks:unique(entitlements.chapterPacks||[]),simulatedPurchases:(entitlements.simulatedPurchases||[]).map(normalizeSimulatedPurchase)},
     paidContent:{impressionIds:unique(paidContent.impressionIds||[]),skippedIds:unique(paidContent.skippedIds||[]),completedIds:unique(paidContent.completedIds||[])},
-    revisit:{...base.revisit,...revisit,visitsByChapter:revisit.visitsByChapter||{},dailyFragmentIds:unique(revisit.dailyFragmentIds||[]),dailyFragmentClaimCount:Number.isFinite(revisit.dailyFragmentClaimCount)?Math.max(0,Math.floor(revisit.dailyFragmentClaimCount)):unique(revisit.dailyFragmentIds||[]).length},
+    revisit:{...base.revisit,...revisit,visitsByChapter:revisit.visitsByChapter||{},dailyFragmentIds:unique((revisit.dailyFragmentIds||[]).map(normalizeDailyFragmentId)),dailyFragmentClaimCount:Number.isFinite(revisit.dailyFragmentClaimCount)?Math.max(0,Math.floor(revisit.dailyFragmentClaimCount)):unique(revisit.dailyFragmentIds||[]).length},
     firstPlayedAt:input.firstPlayedAt||now,lastSeenAt:input.lastSeenAt||now,
   };
 }
@@ -458,18 +463,34 @@ export function buildChapterSummary(profile:ProfileStateV6,chapterId:ChapterId):
 export function claimedRewardIds(profile:ProfileStateV6):ChapterId[]{
   return chapterIds.filter(id=>profile.progression.chapterRewards[id]==="claimed");
 }
-export const dailyFragments=[
-  "卡姆兰把新洗的照片晾在厨房。他总把莱拉选中的那张放在最前面。",
-  "玛丽亚姆记下今晚流星出现的概率。阿拉什替她把望远镜又校准了一次。",
-  "玛兹雅在儿童图书馆修补一本缺页的诗集，没有问那二十八个名字后来去了哪里。",
-  "莱拉在机场落地后给卡姆兰发了一句：我到了。这一次，消息成功送达。",
-  "阿拉什把两张旧公交票换到新书里。纸边碎了一点，目的地仍在。",
+export const dailyFragmentEntries=[
+  {id:"kamran-kitchen-photo",text:"卡姆兰把新洗的照片晾在厨房。他总把莱拉选中的那张放在最前面。"},
+  {id:"mariam-meteor-probability",text:"玛丽亚姆记下今晚流星出现的概率。阿拉什替她把望远镜又校准了一次。"},
+  {id:"maziya-library-poetry",text:"玛兹雅在儿童图书馆修补一本缺页的诗集。她没有再问莱拉当年在问话室里说了什么。"},
+  {id:"leila-arrival-message",text:"莱拉在机场落地后给卡姆兰发了一句：我到了。这一次，消息成功送达。"},
+  {id:"arash-bus-tickets",text:"阿拉什把两张旧公交票换到新书里。纸边碎了一点，目的地仍在。"},
 ] as const;
-export function claimDailyFragment(profile:ProfileStateV6,dateKey:string):{profile:ProfileStateV6;fragment?:string;changed:boolean}{
-  if(profile.revisit.lastDailyFragmentDate===dateKey)return{profile,changed:false};
+export const dailyFragments= dailyFragmentEntries.map(entry=>entry.text);
+
+export interface DailyFragmentPreview {
+  fragment?:string;
+  fragmentId?:string;
+  available:boolean;
+}
+
+/** Reads today's next fragment without consuming it; only claimDailyFragment mutates the profile. */
+export function previewDailyFragment(profile:ProfileStateV6,dateKey:string):DailyFragmentPreview {
+  if(profile.revisit.lastDailyFragmentDate===dateKey)return{available:false};
   const claimCount=Math.max(0,profile.revisit.dailyFragmentClaimCount||0);
-  const index=claimCount%dailyFragments.length; const fragment=dailyFragments[index];
-  return{changed:true,fragment,profile:{...profile,revisit:{...profile.revisit,lastDailyFragmentDate:dateKey,dailyFragmentClaimCount:claimCount+1,dailyFragmentIds:unique([...profile.revisit.dailyFragmentIds,String(index)])}}};
+  const entry=dailyFragmentEntries[claimCount%dailyFragmentEntries.length];
+  return entry?{available:true,fragment:entry.text,fragmentId:entry.id}:{available:false};
+}
+
+export function claimDailyFragment(profile:ProfileStateV6,dateKey:string):{profile:ProfileStateV6;fragment?:string;fragmentId?:string;changed:boolean}{
+  const preview=previewDailyFragment(profile,dateKey);
+  if(!preview.available||!preview.fragment||!preview.fragmentId)return{profile,changed:false};
+  const claimCount=Math.max(0,profile.revisit.dailyFragmentClaimCount||0);
+  return{changed:true,fragment:preview.fragment,fragmentId:preview.fragmentId,profile:{...profile,revisit:{...profile.revisit,lastDailyFragmentDate:dateKey,dailyFragmentClaimCount:claimCount+1,dailyFragmentIds:unique([...profile.revisit.dailyFragmentIds,preview.fragmentId])}}};
 }
 export function markChapterRevisit(profile:ProfileStateV6,chapterId:ChapterId):ProfileStateV6 {
   const count=profile.revisit.visitsByChapter[chapterId]||0;

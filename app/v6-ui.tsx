@@ -11,6 +11,7 @@ export type InteractionView = {
 export type PaidDialogueView = { id: string; title: string; previewLine: string; lockedLines: string[]; archiveTitle?: string; chapterLabel?: string };
 export type PaidDialogueOffer = { productId?: string; label: string; description?: string; price: string; creditText?: string; recommended?: boolean };
 export type ChapterRewardView = { code: string; prop: string; nextHint: string; disclaimer: string };
+export type ArchiveRewardView = { id: string; label: string; prop: string; code: string; status: "revealed" | "claimed" };
 
 export function MemoryHUD({memory,chapterGain,nextUnlock,collectibles,unlockedDialogues,rewards}:{memory:number;chapterGain:number;nextUnlock:MemoryUnlockView;collectibles:number;unlockedDialogues:number;rewards:number}) {
   return <aside className="memory-hud" aria-label="记忆显影进度">
@@ -22,7 +23,7 @@ export function MemoryHUD({memory,chapterGain,nextUnlock,collectibles,unlockedDi
 }
 
 function kindLabel(kind:string){
-  return ({explore:"场景探索",photo:"照片整理",projector:"投影修复",choice:"记忆选择",email:"邮件编辑",gaze:"目光与沉默",combine:"纪念物组合",hold:"握住与松开",silence:"握住与松开"} as Record<string,string>)[kind]||"记忆互动";
+  return ({explore:"场景探索",photo:"照片整理",projector:"投影修复",choice:"记忆选择",email:"邮件编辑",gaze:"目光与沉默",combine:"纪念物组合",hold:"点击确认",silence:"停留一拍"} as Record<string,string>)[kind]||"记忆互动";
 }
 
 export function DiscoveryInteraction({interaction,completed,onStart,onComplete}:{interaction:InteractionView;completed:boolean;onStart:(id:string)=>void;onComplete:(id:string)=>void}) {
@@ -30,45 +31,35 @@ export function DiscoveryInteraction({interaction,completed,onStart,onComplete}:
   const [active,setActive]=useState(false);
   const [step,setStep]=useState(completed?steps.length:0);
   const [pieces,setPieces]=useState<boolean[]>(steps.map(()=>false));
-  const [holdArmed,setHoldArmed]=useState(false);
-  const holdArmedRef=useRef(false);
-  const holdTimer=useRef<number|null>(null);
-  const clearHold=()=>{if(holdTimer.current!==null){window.clearTimeout(holdTimer.current);holdTimer.current=null}};
-
-  useEffect(()=>()=>clearHold(),[]);
   const begin=()=>{if(!active){setActive(true);onStart(interaction.id)}};
   const finish=()=>{begin();setStep(steps.length);onComplete(interaction.id)};
   const advance=()=>{begin();const next=Math.min(steps.length,step+1);setStep(next);if(next>=steps.length)onComplete(interaction.id)};
   const togglePiece=(index:number)=>{begin();const next=pieces.map((value,pieceIndex)=>pieceIndex===index?true:value);setPieces(next);if(next.every(Boolean))finish()};
-  const armHold=()=>{
-    begin();clearHold();holdArmedRef.current=false;setHoldArmed(false);
-    const arm=()=>{holdTimer.current=null;holdArmedRef.current=true;setHoldArmed(true)};
-    if(window.matchMedia("(prefers-reduced-motion: reduce)").matches){arm();return}
-    holdTimer.current=window.setTimeout(arm,720);
-  };
-  const releaseHold=()=>{
-    clearHold();if(!holdArmedRef.current)return;
-    holdArmedRef.current=false;setHoldArmed(false);
-    const next=Math.min(steps.length,step+1);setStep(next);if(next>=steps.length)onComplete(interaction.id);
-  };
-  const cancelHold=()=>{clearHold();holdArmedRef.current=false;setHoldArmed(false)};
   const done=completed||step>=steps.length;
   const currentStep=steps[Math.min(step,steps.length-1)];
   return <section className={"discovery-interaction kind-"+interaction.kind+(done?" is-complete":"")} aria-labelledby={"interaction-"+interaction.id}>
     <div className="discovery-heading"><span>{kindLabel(interaction.kind)}</span><strong id={"interaction-"+interaction.id}>{interaction.title}</strong>{!done&&<small>{interaction.optional?"可错过 · 重访可补":"关键记忆"}</small>}</div>
     <p>{interaction.prompt}</p>
     {interaction.kind==="combine"&&!done?<div className="combine-pieces" aria-label="选择并组合两件纪念物">{steps.map((label,index)=><button key={label} className={pieces[index]?"selected":""} aria-pressed={pieces[index]} onClick={()=>togglePiece(index)}><i aria-hidden="true"/><span>{label}</span></button>)}</div>
-    :(interaction.kind==="hold"||interaction.kind==="silence")&&!done?<button className={"hold-memory "+(holdArmed?"is-armed":"")} aria-label={(holdArmed?"松手确认：":"按住：")+currentStep} onPointerDown={event=>{event.currentTarget.setPointerCapture(event.pointerId);armHold()}} onPointerUp={event=>{releaseHold();if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId)}} onPointerCancel={cancelHold} onKeyDown={event=>{if((event.key===" "||event.key==="Enter")&&!event.repeat){event.preventDefault();armHold()}}} onKeyUp={event=>{if(event.key===" "||event.key==="Enter"){event.preventDefault();releaseHold()}}}><strong>{holdArmed?"松手确认":currentStep}</strong><b>{String(step+1).padStart(2,"0")}/{String(steps.length).padStart(2,"0")}</b><span aria-hidden="true"/></button>
+    :(interaction.kind==="hold"||interaction.kind==="silence")&&!done?<button className="tap-memory" type="button" aria-label={`点击确认：${currentStep}`} onClick={advance}><strong>{currentStep}</strong><b>{String(step+1).padStart(2,"0")}/{String(steps.length).padStart(2,"0")}</b><span aria-hidden="true">→</span></button>
     :!done?<div className="interaction-steps"><button onClick={advance}><span>{currentStep}</span><b>{String(step+1).padStart(2,"0")}/{String(steps.length).padStart(2,"0")}</b></button></div>:null}
     {done&&<div className="discovery-result" role="status" aria-live="polite"><span>记忆显影 +{interaction.reward.memory}</span><p>{interaction.reveal}</p>{interaction.reward.collectibleId&&<small>纪念物已收入卷宗</small>}</div>}
   </section>;
 }
 
-export function PaidDialogueTeaser({dialogue,onOpen}:{dialogue:PaidDialogueView;onOpen:()=>void}) {
-  return <aside className="paid-dialogue-teaser" aria-label={`可选隐藏对白：${dialogue.title}`}>
-    <span>可选镜头 · 不影响主线</span><div><strong>{dialogue.title}</strong><p>{dialogue.previewLine}</p></div>
-    <button type="button" onClick={onOpen}>靠近这段沉默 <b>→</b></button>
-  </aside>;
+const paidObjectLabels:Record<string,{object:string;hint:string}>={
+  "paid-photo-developing":{object:"冲印袋",hint:"照片边缘还有一句话"},
+  "paid-lab-door":{object:"实验室门卡",hint:"门卡背后压着一句话"},
+  "paid-marriage-truth":{object:"视频窗口",hint:"通话还没有挂断"},
+  "paid-two-cities-choice":{object:"观测卡",hint:"两座城市共享一个夜晚"},
+  "paid-reunion-hypothesis":{object:"咖啡小票",hint:"背面写着一个假设"},
+};
+
+export function PaidObjectHotspot({dialogue,onOpen}:{dialogue:PaidDialogueView;onOpen:()=>void}) {
+  const copy=paidObjectLabels[dialogue.id]||{object:"旧物",hint:dialogue.previewLine};
+  return <button type="button" className="paid-object-hotspot" data-paid-object={dialogue.id} onClick={onOpen} aria-label={`查看可选物件：${copy.object}。${dialogue.title}`}>
+    <i aria-hidden="true"/><span><small>可选物件 · 不影响主线</small><strong>{copy.object}</strong><em>{copy.hint}</em></span>
+  </button>;
 }
 export function PaidDialogueOverlay({dialogue,unlockedLineCount,fullAccess,hasAccess=false,offers,offer,offerLabel,offerPrice,creditText,onUnlock,onSkip,onContinue}:{dialogue:PaidDialogueView;unlockedLineCount?:number;fullAccess?:boolean;hasAccess?:boolean;offers?:PaidDialogueOffer[];offer?:PaidDialogueOffer;offerLabel?:string;offerPrice?:string;creditText?:string;onUnlock?:(productId?:string)=>void;onSkip?:()=>void;onContinue:()=>void}) {
   const dialogRef=useRef<HTMLElement|null>(null);
@@ -137,7 +128,7 @@ export function ChapterSettlementOverlay({chapterLabel,memoryEarned,collectibleC
   </section></div>;
 }
 
-export function ArchiveProgress({memory,nextUnlock,completedChapters,collectibles,rewards,unlockedDialogues,encounteredDialogues,paidItems,paidLineVisibility,previewVisible,specialEpilogueAvailable,onSpecialEpilogue}:{memory:number;nextUnlock:MemoryUnlockView;completedChapters:string[];collectibles:string[];rewards:string[];unlockedDialogues:string[];encounteredDialogues?:string[];paidItems:PaidDialogueView[];paidLineVisibility?:Record<string,number>;previewVisible?:boolean;specialEpilogueAvailable:boolean;onSpecialEpilogue?:()=>void}) {
+export function ArchiveProgress({memory,nextUnlock,completedChapters,collectibles,rewards,rewardItems=[],returnFragments=[],unlockedDialogues,encounteredDialogues,paidItems,paidLineVisibility,previewVisible,specialEpilogueAvailable,onClaimReward,onCopyReward,onSpecialEpilogue}:{memory:number;nextUnlock:MemoryUnlockView;completedChapters:string[];collectibles:string[];rewards:string[];rewardItems?:ArchiveRewardView[];returnFragments?:string[];unlockedDialogues:string[];encounteredDialogues?:string[];paidItems:PaidDialogueView[];paidLineVisibility?:Record<string,number>;previewVisible?:boolean;specialEpilogueAvailable:boolean;onClaimReward?:(id:string)=>void;onCopyReward?:(code:string)=>void;onSpecialEpilogue?:()=>void}) {
   const canPreview=previewVisible??memory>=61;
   const visibleCountFor=(item:PaidDialogueView)=>{
     const hasExplicit=Boolean(paidLineVisibility&&Object.prototype.hasOwnProperty.call(paidLineVisibility,item.id));
@@ -146,6 +137,8 @@ export function ArchiveProgress({memory,nextUnlock,completedChapters,collectible
   };
   return <section className="archive-progress" aria-labelledby="archive-progress-title"><div className="archive-progress-head"><span>持续档案</span><h3 id="archive-progress-title">记忆显影度 {memory}/100</h3><p>{nextUnlock?`再显影 ${nextUnlock.remaining} 点，开放「${nextUnlock.label}」。`:"完整记忆卷宗已经开放。"}</p></div>
     <div className="archive-progress-grid"><article><span>完成章节</span><strong>{completedChapters.length}/5</strong></article><article><span>纪念物</span><strong>{collectibles.length}</strong></article><article><span>演示礼包</span><strong>{rewards.length}/5</strong></article><article><span>隐藏对白</span><strong>{unlockedDialogues.length}/5</strong></article></div>
+    {rewardItems.length>0&&<div className="archive-reward-ledger"><span>章节纪念卷 · 可随时补领</span>{rewardItems.map(item=><article key={item.id}><div><strong>{item.label}</strong><p>{item.prop}</p><code>{item.code}</code></div><div>{item.status==="revealed"&&onClaimReward?<button type="button" onClick={()=>onClaimReward(item.id)}>收入卷宗</button>:<em>已收入</em>}{onCopyReward&&<button type="button" onClick={()=>onCopyReward(item.code)}>复制演示码</button>}</div></article>)}</div>}
+    {returnFragments.length>0&&<div className="return-fragment-ledger"><span>回访时收到的残片</span>{returnFragments.map((fragment,index)=><p key={index}>{fragment}</p>)}</div>}
     <div className="archive-collections"><div><span>已收藏物件</span><p>{collectibles.length?collectibles.join(" · "):"照片、车票和旧书仍等着被发现。"}</p></div><div><span>未说出口的话</span>{paidItems.map(item=>{
       const encountered=encounteredDialogues?.includes(item.id)??true;if(!encountered)return <article key={item.id} aria-label={`${item.chapterLabel||"未来章节"}对白尚未抵达`}><strong>{item.chapterLabel||"未来章节"} · 尚未抵达</strong><p className="blurred">{unlockedDialogues.includes(item.id)?"已拥有 · 随剧情显影":"随剧情抵达后开放"}</p></article>;
       const visibleCount=visibleCountFor(item);const remaining=item.lockedLines.length-visibleCount;

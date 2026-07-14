@@ -200,9 +200,10 @@ test("remaining dialogue counts measure unrevealed lines rather than product own
   assert.equal(progression.buildChapterSummary(chapter, first.chapterId).remainingDialogueLines, 0);
 });
 test("paid dialogue is a scene-native option rather than a forced emotional interruption", () => {
-  assert.match(uiSource, /可选镜头 · 不影响主线/);
-  assert.match(uiSource, /靠近这段沉默/);
-  assert.match(pageSource, /<PaidDialogueTeaser/);
+  assert.match(uiSource, /可选物件 · 不影响主线/);
+  assert.match(uiSource, /paidObjectLabels/);
+  assert.match(pageSource, /<PaidObjectHotspot/);
+  assert.doesNotMatch(pageSource, /<PaidDialogueTeaser/);
   const exitStart = pageSource.indexOf("const requestSceneExit");
   const exitRoute = pageSource.slice(exitStart, pageSource.indexOf("const advance=()=>", exitStart));
   assert.match(exitRoute, /markPaidSkipped\(markPaidImpression/);

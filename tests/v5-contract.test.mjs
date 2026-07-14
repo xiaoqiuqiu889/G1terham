@@ -66,8 +66,9 @@ test("photo, email and gaze are three distinct physical interaction components",
   assert.match(pageSource, /反面朝上/);
   assert.match(pageSource, /收回包里/);
   assert.match(pageSource, /<textarea|role="textbox"/);
-  assert.match(pageSource, /onPointerDown/);
-  assert.match(pageSource, /onPointerUp|onPointerCancel/);
+  assert.match(pageSource, /className="tap-delete"/);
+  assert.match(pageSource, /onClick=\{deleteDraft\}/);
+  assert.doesNotMatch(pageSource, /按住删除这句话/);
   assert.match(pageSource, /gaze-hotspot/);
   assert.match(pageSource, /手与白发/);
   assert.match(pageSource, /诗集/);
@@ -100,23 +101,22 @@ test("main choices separate action, confirmation and future/ending echoes", () =
   }
 });
 
-test("the list choice withholds Mazya's future and states a gain and cost", () => {
+test("the denunciation choice is direct and withholds Mazya's future", () => {
   const index = story.scenes.findIndex(scene => scene.choiceId === "choice-two");
   assert.ok(index >= 0);
   const scene = story.scenes[index];
   const beforeChoice = (scene.body ?? []).join(" ");
-  assert.match(beforeChoice, /二十八/);
-  assert.match(beforeChoice, /去向不明/);
-  assert.match(beforeChoice, /搜查/);
+  assert.match(beforeChoice, /谁和你一起做|告发同伴/);
+  assert.match(beforeChoice, /调查者|纪律委员会/);
   assert.doesNotMatch(beforeChoice, /六个月后|获释/);
   const afterChoice = story.scenes.slice(index + 1).flatMap(item => item.body ?? []).join(" ");
   assert.match(afterChoice, /六个月后/);
   assert.match(afterChoice, /获释/);
 
   const options = Object.fromEntries(story.memoryContracts["choice-two"].map(option => [option.id, option]));
-  assert.match(`${options.reporter?.detail} ${options.reporter?.action}`, /脱离控制/);
-  assert.match(`${options.book?.detail} ${options.book?.action}`, /搜查风险/);
-  assert.match(`${options.burn?.detail} ${options.burn?.action}`, /核验/);
+  assert.match(`${options.reporter?.detail} ${options.reporter?.action}`, /自己|不提供/);
+  assert.match(`${options.book?.detail} ${options.book?.action}`, /拒绝|不说|沉默/);
+  assert.match(`${options.burn?.detail} ${options.burn?.action}`, /说出|姓名|减轻/);
 });
 
 test("all final-night options explicitly position Kamran", () => {

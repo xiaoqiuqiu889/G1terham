@@ -12,11 +12,11 @@ import {
 } from "./story";
 import {
   ArchiveProgress, ChapterSettlementOverlay, DiscoveryInteraction, InteractionView,
-  MemoryHUD, PaidDialogueOverlay, PaidDialogueTeaser, PaidDialogueView,
+  MemoryHUD, PaidDialogueOverlay, PaidObjectHotspot, PaidDialogueView,
 } from "./v6-ui";
 import {
   buildChapterSummary, chapterContractById, chapterMemoryGain, chapterRewardById, claimChapterReward,
-  claimDailyFragment, claimedRewardIds, completeChapter as completeProfileChapter,
+  claimDailyFragment, claimedRewardIds, completeChapter as completeProfileChapter, dailyFragmentEntries, previewDailyFragment,
   completeInteraction as completeProfileInteraction, availablePurchaseOffers, createInitialProfile,
   hasDialogueAccess, interactionById, interactionsByScene, markChapterRevisit, markPaidComplete,
   markPaidImpression, markPaidSkipped, markSpecialEpilogueViewed, nextMemoryUnlock, normalizeProfile,
@@ -24,6 +24,7 @@ import {
   setAxisValues, simulateLocalPurchase, unresolvedDialogueCount, visibleDialogueLineCount, ChapterId, PaidDialogueId,
 } from "./progression";
 import { trackEvent } from "./analytics";
+import { CURRENT_CONTENT_REVISION, normalizeRunStartMemory, resolveSavedSceneIndex } from "./save-state";
 
 const SAVE_KEY="revolution-street-save-v6";
 const LEGACY_SAVE_KEY="revolution-street-save-v5";
@@ -39,7 +40,7 @@ type HistoryEntry={
   runInteractionIds:string[];projectorStep:number;
 };
 type SaveData={
-  version:6;mode:Mode;sceneIndex:number;beatIndex:number;
+  version:6;contentRevision?:number;mode:Mode;sceneId?:string;sceneIndex:number;beatIndex:number;runStartMemory?:number;
   answers:Record<string,AnswerRecord>;resonances:Record<string,ResonanceRecord>;
   history:HistoryEntry[];savedAt:number;profile:ProfileStateV6;
   runInteractionIds:string[];projectorStep:number;resolvedPaidIds:string[];settledChapterIds:ChapterId[];
@@ -51,7 +52,7 @@ type LegacySaveData={
 };
 type CompletedRun={
   ending:EndingKey;answers:Record<string,AnswerRecord>;
-  resonances:Record<string,ResonanceRecord>;completedAt:number;profile?:ProfileStateV6;
+  resonances:Record<string,ResonanceRecord>;completedAt:number;profile?:ProfileStateV6;runMemoryGain?:number;
 };
 
 const echoChoiceByScene:Record<string,string>={
@@ -130,6 +131,8 @@ export default function Home(){
   const [pendingPaidId,setPendingPaidId]=useState<PaidDialogueId|null>(null);
   const [pendingChapterId,setPendingChapterId]=useState<ChapterId|null>(null);
   const [dailyFragment,setDailyFragment]=useState<string|null>(null);
+  const [dailyFragmentId,setDailyFragmentId]=useState<string|null>(null);
+  const [runStartMemory,setRunStartMemory]=useState(0);
   const [specialEpilogueOpen,setSpecialEpilogueOpen]=useState(false);
   const [skipPromptSceneId,setSkipPromptSceneId]=useState<string|null>(null);
   const profileRef=useRef(profile);
@@ -195,7 +198,9 @@ export default function Home(){
         const parsed=JSON.parse(savedRaw) as SaveData;
         const savedProfile=normalizeProfile(parsed.profile,now);
         if(savedProfile.lastSeenAt>loadedProfile.lastSeenAt)loadedProfile=savedProfile;
-        setSavedGame({...parsed,profile:savedProfile});
+        const savedTimeline=parsed.mode==="revisit-quick"?revisitScenes:scenes;
+        const restoredIndex=resolveSavedSceneIndex(parsed,savedTimeline.map(item=>item.id));
+        setSavedGame({...parsed,sceneIndex:restoredIndex,sceneId:savedTimeline[restoredIndex]?.id,runStartMemory:normalizeRunStartMemory(parsed.runStartMemory,savedProfile.progression.memoryExposure),profile:savedProfile});
       }else{
         const legacyRaw=localStorage.getItem(LEGACY_SAVE_KEY);
         if(legacyRaw){
@@ -208,14 +213,14 @@ export default function Home(){
           const migratedIds=Array.from(new Set([...visited,...answered]));
           for(const id of migratedIds)loadedProfile=completeProfileInteraction(loadedProfile,id).profile;
           loadedProfile=setAxisValues(loadedProfile,scoreAnswers(legacy.answers));
-          const migrated:SaveData={version:6,mode:legacy.mode,sceneIndex:legacy.sceneIndex,beatIndex:legacy.beatIndex,answers:legacy.answers,resonances:legacy.resonances||{},history:[],savedAt:legacy.savedAt,profile:loadedProfile,runInteractionIds:migratedIds,projectorStep:legacy.sceneIndex>scenes.findIndex(item=>item.id==="campus")?2:0,resolvedPaidIds:[],settledChapterIds:[]};
+          const migrated:SaveData={version:6,contentRevision:CURRENT_CONTENT_REVISION,mode:legacy.mode,sceneId:scenes[legacy.sceneIndex]?.id,sceneIndex:legacy.sceneIndex,beatIndex:legacy.beatIndex,runStartMemory:loadedProfile.progression.memoryExposure,answers:legacy.answers,resonances:legacy.resonances||{},history:[],savedAt:legacy.savedAt,profile:loadedProfile,runInteractionIds:migratedIds,projectorStep:legacy.sceneIndex>scenes.findIndex(item=>item.id==="campus")?2:0,resolvedPaidIds:[],settledChapterIds:[]};
           setSavedGame(migrated);
         }
       }
       const hadEarlierVisit=Boolean(rawProfile)&&localDateKey(new Date(loadedProfile.lastSeenAt))!==today;
       if(hadEarlierVisit){
-        const daily=claimDailyFragment(loadedProfile,today);
-        loadedProfile=daily.profile;if(daily.fragment)setDailyFragment(daily.fragment);
+        const daily=previewDailyFragment(loadedProfile,today);
+        if(daily.fragment&&daily.fragmentId){setDailyFragment(daily.fragment);setDailyFragmentId(daily.fragmentId)}
       }
       loadedProfile={...loadedProfile,lastSeenAt:now};
       profileRef.current=loadedProfile;setProfile(loadedProfile);
@@ -230,22 +235,22 @@ export default function Home(){
 
   useEffect(()=>{
     if(!storageReady||!started||finished||selectedOption)return;
-    const data:SaveData={version:6,mode,sceneIndex,beatIndex,answers,resonances,history,savedAt:Date.now(),profile,runInteractionIds,projectorStep,resolvedPaidIds,settledChapterIds};
+    const data:SaveData={version:6,contentRevision:CURRENT_CONTENT_REVISION,mode,sceneId:scene?.id,sceneIndex,beatIndex,runStartMemory,answers,resonances,history,savedAt:Date.now(),profile,runInteractionIds,projectorStep,resolvedPaidIds,settledChapterIds};
     localStorage.setItem(SAVE_KEY,JSON.stringify(data));
-  },[storageReady,started,mode,sceneIndex,beatIndex,answers,resonances,history,profile,runInteractionIds,projectorStep,resolvedPaidIds,settledChapterIds,finished,selectedOption]);
+  },[storageReady,started,mode,scene?.id,sceneIndex,beatIndex,runStartMemory,answers,resonances,history,profile,runInteractionIds,projectorStep,resolvedPaidIds,settledChapterIds,finished,selectedOption]);
 
   useEffect(()=>{
     if(!started||!finished||Object.keys(answers).length!==3)return;
     const signature=mode+":"+choiceIds.map(id=>answers[id]?.optionId).join("|")+":"+resonanceIds.map(id=>resonances[id]?.optionId).join("|");
     if(recordedRef.current===signature)return;
     recordedRef.current=signature;
-    const completed:CompletedRun={ending:endingKey,answers,resonances,completedAt:Date.now(),profile};
+    const completed:CompletedRun={ending:endingKey,answers,resonances,completedAt:Date.now(),profile,runMemoryGain:Math.max(0,profile.progression.memoryExposure-runStartMemory)};
     localStorage.setItem(LAST_RUN_KEY,JSON.stringify(completed));
     localStorage.removeItem(SAVE_KEY);localStorage.removeItem(LEGACY_SAVE_KEY);
     setSavedGame(null);setLastRun(completed);
     trackEvent("ending_complete",{ending:endingKey,mode,memory:profile.progression.memoryExposure},"ending:"+signature);
     audioRef.current?.setChapter("ending");audioRef.current?.cue("ending");
-  },[started,finished,answers,resonances,endingKey,mode,profile]);
+  },[started,finished,answers,resonances,endingKey,mode,profile,runStartMemory]);
 
   useEffect(()=>{
     if(!started||finished)return;
@@ -342,7 +347,7 @@ export default function Home(){
     setEndingRevealed(false);setGazeFocus(null);setProjectorStep(0);recordedRef.current="";setComparisonBase(base);
     setResonances(nextMode==="revisit-quick"?(base?.resonances||{}):{});
     runInteractionsRef.current=[];setRunInteractionIds([]);setResolvedPaidIds([]);setSettledChapterIds([]);
-    setPendingPaidId(null);setPendingChapterId(null);setDailyFragment(null);setSpecialEpilogueOpen(false);setSkipPromptSceneId(null);
+    setPendingPaidId(null);setPendingChapterId(null);setDailyFragment(null);setDailyFragmentId(null);setRunStartMemory(profileRef.current.progression.memoryExposure);setSpecialEpilogueOpen(false);setSkipPromptSceneId(null);
     localStorage.removeItem(SAVE_KEY);
     if(nextMode!=="full")trackEvent("revisit_start",{mode:nextMode,previousEnding:base?.ending||null});
     if(enableSound)void startSound();
@@ -355,12 +360,14 @@ export default function Home(){
   const continueSaved=()=>{
     if(!savedGame)return;
     const restored=normalizeProfile(savedGame.profile);
-    commitProfile(restored);setMode(savedGame.mode);setSceneIndex(savedGame.sceneIndex);setBeatIndex(savedGame.beatIndex);
+    const savedTimeline=savedGame.mode==="revisit-quick"?revisitScenes:scenes;
+    const restoredSceneIndex=resolveSavedSceneIndex(savedGame,savedTimeline.map(item=>item.id));
+    commitProfile(restored);setMode(savedGame.mode);setSceneIndex(restoredSceneIndex);setBeatIndex(savedGame.beatIndex);setRunStartMemory(normalizeRunStartMemory(savedGame.runStartMemory,restored.progression.memoryExposure));
     setAnswers(savedGame.answers);setResonances(savedGame.resonances||{});setHistory(savedGame.history||[]);
     const restoredRun=savedGame.runInteractionIds||[];runInteractionsRef.current=restoredRun;setRunInteractionIds(restoredRun);
     setProjectorStep(savedGame.projectorStep||0);setResolvedPaidIds(savedGame.resolvedPaidIds||[]);setSettledChapterIds(savedGame.settledChapterIds||[]);
     setStarted(true);setEndingRevealed(false);setComparisonBase(isRevisitMode(savedGame.mode)?lastRun:null);
-    trackEvent("save_resume",{sceneIndex:savedGame.sceneIndex,mode:savedGame.mode,memory:restored.progression.memoryExposure});
+    trackEvent("save_resume",{sceneIndex:restoredSceneIndex,sceneId:savedTimeline[restoredSceneIndex]?.id,mode:savedGame.mode,memory:restored.progression.memoryExposure});
     if(soundPreferred)void startSound();
   };
 
@@ -487,13 +494,13 @@ export default function Home(){
     if(productId==="full-pass")trackEvent("full_pass_click",{dialogueId:activePaid.id,productId});
     commitProfile(simulateLocalPurchase(profileRef.current,productId));
   };
-  const claimSettlementReward=()=>{
-    if(!pendingChapterId)return;commitProfile(claimChapterReward(profileRef.current,pendingChapterId));
-    trackEvent("chapter_reward_claim",{chapterId:pendingChapterId,rewardId:chapterRewardById[pendingChapterId].sourceSceneId});
+  const claimReward=(chapterId:ChapterId,source:"settlement"|"archive")=>{
+    commitProfile(claimChapterReward(profileRef.current,chapterId));
+    trackEvent("chapter_reward_claim",{chapterId,rewardId:chapterRewardById[chapterId].sourceSceneId,source});
   };
-  const copySettlementReward=()=>{
-    if(!pendingChapterId)return;void navigator.clipboard?.writeText(chapterRewardById[pendingChapterId].code);
-  };
+  const claimSettlementReward=()=>{if(pendingChapterId)claimReward(pendingChapterId,"settlement")};
+  const copyRewardCode=(code:string)=>{void navigator.clipboard?.writeText(code)};
+  const copySettlementReward=()=>{if(pendingChapterId)copyRewardCode(chapterRewardById[pendingChapterId].code)};
   const continueSettlement=()=>{
     if(!pendingChapterId)return;const chapterId=pendingChapterId;
     setPendingChapterId(null);setSettledChapterIds(value=>Array.from(new Set([...value,chapterId])));moveNext();
@@ -504,7 +511,11 @@ export default function Home(){
     commitProfile(markSpecialEpilogueViewed(profileRef.current));setSpecialEpilogueOpen(true);
   };
   const acknowledgeDailyFragment=()=>{
-    if(!dailyFragment)return;trackEvent("return_teaser_click",{fragment:dailyFragment});setDailyFragment(null);
+    if(!dailyFragment||!dailyFragmentId)return;
+    const claimed=claimDailyFragment(profileRef.current,localDateKey());
+    if(claimed.changed)commitProfile(claimed.profile);
+    trackEvent("return_teaser_click",{fragment:dailyFragment,fragmentId:dailyFragmentId,claimed:claimed.changed});
+    setDailyFragment(null);setDailyFragmentId(null);
   };
   const startChapterRevisit=(chapterId:ChapterId)=>{
     if(!lastRun)return;const index=scenes.findIndex(item=>item.id===chapterContractById[chapterId].endSceneId);
@@ -549,13 +560,14 @@ export default function Home(){
           <button className="start-button" onClick={()=>{setEndingRevealed(true);audioRef.current?.cue("ending")}}>翻开最后一页 <span>→</span></button>
         </div>
       </section>
-      :finished?<EndingScreen endingKey={endingKey} answers={answers} resonances={resonances} mode={mode} comparisonBase={comparisonBase} profile={profile} specialEpilogueOpen={specialEpilogueOpen} onSpecialEpilogue={openSpecialEpilogue} onChapterRevisit={startChapterRevisit} onFresh={startFresh} onRevisit={startRevisit} onJournal={openJournal}/>
+      :finished?<EndingScreen endingKey={endingKey} answers={answers} resonances={resonances} mode={mode} comparisonBase={comparisonBase} profile={profile} runMemoryGain={Math.max(0,profile.progression.memoryExposure-runStartMemory)} specialEpilogueOpen={specialEpilogueOpen} onSpecialEpilogue={openSpecialEpilogue} onChapterRevisit={startChapterRevisit} onFresh={startFresh} onRevisit={startRevisit} onJournal={openJournal}/>
       :scene.kind==="chapter"?<section className="chapter-screen" key={scene.id} onClick={handleSceneClick}>
         <Backdrop src={scene.art}/><div className="chapter-card"><p>{scene.year}</p><span>{scene.chapterLabel}</span><h2>{scene.place}</h2><div className="chapter-rule"/><blockquote>{scene.body?.[0]}</blockquote><button className="continue-button" onClick={advance}>进入本章 <span>→</span></button></div>
       </section>
       :<section className={`scene ${scene.kind} ${scene.resonanceId?`physical-${scene.resonanceId}`:""}`} data-canonical-photo={scene.canonicalPhoto} key={scene.id} onClick={handleSceneClick}>
         <Backdrop src={sceneArt} focus={scene.resonanceId==="gaze"&&gazeFocus?`gaze-${gazeFocus}`:scene.artFocus}/><ObjectShot type={scene.object}/>
         {scene.resonanceId==="gaze"&&<GazeVisualLayer options={scene.resonances||[]} selected={selectedOption} focus={gazeFocus} onFocus={setGazeFocus} onSelect={selectOption}/>}
+        {interactionsVisible&&scenePaidDialogue&&incompleteRequiredDiscoveryIds.length===0&&<PaidObjectHotspot dialogue={dialogueView(scenePaidDialogue.id)} onOpen={openScenePaidDialogue}/>}
         <GameHeader progress={progress} sceneNumber={sceneIndex+1} totalScenes={activeScenes.length} chapter={scene.chapterLabel} soundOn={soundOn} onSound={toggleSound} onBack={goBack} canBack={history.length>0&&!selectedOption&&!pendingPaidId&&!pendingChapterId} onJournal={openJournal}/>
         <div className="scene-copy">
           <div className="location-row"><span>{scene.chapterLabel}</span><span className="location">{scene.place}</span></div>
@@ -565,7 +577,6 @@ export default function Home(){
           :scene.kind==="revisitEcho"?<RevisitEcho current={answers[scene.choiceId||""]} previous={comparisonBase?.answers[scene.choiceId||""]} ready={echoReady}/>
           :<div className="dialogue-stack">{visibleBody.map((paragraph,index)=><p className="dialogue" key={index}>{paragraph}</p>)}</div>}
           {interactionsVisible&&discoveryViews.map(interaction=><DiscoveryInteraction key={interaction.id} interaction={interaction} completed={runInteractionIds.includes(interaction.id)} onStart={id=>trackEvent("interaction_start",{interactionId:id,sceneId:scene.id,kind:interaction.kind},"run:"+mode+":"+id)} onComplete={completeRunInteraction}/>)}
-          {interactionsVisible&&scenePaidDialogue&&incompleteRequiredDiscoveryIds.length===0&&<PaidDialogueTeaser dialogue={dialogueView(scenePaidDialogue.id)} onOpen={openScenePaidDialogue}/>}
           {scene.kind==="choice"?
             <SelectionPanel scene={scene} selected={selectedOption} ready={confirmationReady} previous={comparisonBase?.answers[scene.choiceId||""]} mode={mode} onSelect={selectOption} onCommit={commitSelection}/>
           :scene.kind==="resonance"&&scene.resonanceId==="photo"?<PhotoInteraction options={scene.resonances||[]} selected={selectedOption} ready={confirmationReady} previous={comparisonBase?.resonances.photo} mode={mode} onSelect={selectOption} onCommit={commitSelection}/>
@@ -581,7 +592,7 @@ export default function Home(){
       {started&&!finished&&!quietCinematicScene&&<MemoryHUD memory={profile.progression.memoryExposure} chapterGain={sceneChapterId?chapterMemoryGain(profile,sceneChapterId):0} nextUnlock={memoryUnlock} collectibles={profile.progression.collectibleIds.length} unlockedDialogues={paidDialogues.filter(item=>hasDialogueAccess(profile.entitlements,item)).length} rewards={claimedRewardIds(profile).length}/>}
       {activePaid&&<PaidDialogueOverlay dialogue={dialogueView(activePaid.id)} unlockedLineCount={activePaidLineCount} fullAccess={activePaidHasFullAccess} offers={activeOfferViews} onUnlock={purchaseActiveDialogue} onSkip={()=>continueAfterPaid(activePaid.id,false)} onContinue={()=>continueAfterPaid(activePaid.id,true)}/>}
       {pendingChapterId&&settlementSummary&&<ChapterSettlementOverlay chapterLabel={chapterContractById[pendingChapterId].label} memoryEarned={settlementSummary.memoryEarned} collectibleCount={settlementSummary.collectibleIds.length} missedDialogueCount={settlementSummary.lockedPaidCount} reward={chapterRewardById[pendingChapterId]} chapterIndex={Number(pendingChapterId.replace("chapter",""))} collectedRewardCount={claimedRewardIds(profile).length} claimed={profile.progression.chapterRewards[pendingChapterId]==="claimed"} nextTeaser={settlementSummary.nextTeaser} onClaim={claimSettlementReward} onCopy={copySettlementReward} onContinue={continueSettlement}/>}
-      {journalOpen&&<Journal answers={answers} resonances={resonances} unlocked={unlocked} profile={profile} onSpecialEpilogue={openSpecialEpilogue} onChapterRevisit={startChapterRevisit} onClose={()=>setJournalOpen(false)} closeRef={journalCloseRef}/>}
+      {journalOpen&&<Journal answers={answers} resonances={resonances} unlocked={unlocked} profile={profile} onClaimReward={chapterId=>claimReward(chapterId,"archive")} onCopyReward={copyRewardCode} onSpecialEpilogue={openSpecialEpilogue} onChapterRevisit={startChapterRevisit} onClose={()=>setJournalOpen(false)} closeRef={journalCloseRef}/>}
       {specialEpilogueOpen&&!finished&&<SpecialEpilogueOverlay onClose={()=>setSpecialEpilogueOpen(false)}/>}
     </div>
     <p className="outside-hint">点击画面 / 空格继续 · ← 返回上一幕 · 触屏可完成全部操作</p>
@@ -681,29 +692,19 @@ function PhotoInteraction({options,selected,ready,previous,mode,onSelect,onCommi
 function EmailInteraction({options,selected,ready,previous,mode,onSelect,onCommit}:{options:ResonanceOption[];selected:string|null;ready:boolean;previous?:ResonanceRecord;mode:Mode;onSelect:(id:string)=>void;onCommit:()=>void}){
   const [draft,setDraft]=useState("");
   const [deleted,setDeleted]=useState(false);
-  const deleteTimer=useRef<number|null>(null);
   const selectedData=options.find(option=>option.id===selected);
   const choose=(option:ResonanceOption)=>{
     if(selected)return;
     setDraft(option.label.replace(/[“”"]/g,""));setDeleted(false);onSelect(option.id);
   };
-  const stopDelete=()=>{if(deleteTimer.current!==null){window.clearInterval(deleteTimer.current);deleteTimer.current=null}};
-  const finishDelete=()=>{stopDelete();setDraft("");setDeleted(true)};
-  const startDelete=()=>{
-    if(!selected||deleted)return;
-    if(window.matchMedia("(prefers-reduced-motion: reduce)").matches){window.setTimeout(finishDelete,70);return}
-    if(deleteTimer.current!==null)return;deleteTimer.current=window.setInterval(()=>setDraft(value=>{
-      const next=value.slice(0,-1);if(!next)window.setTimeout(finishDelete,0);return next;
-    }),85);
-  };
-  useEffect(()=>()=>stopDelete(),[]);
+  const deleteDraft=()=>{if(!selected||deleted)return;setDraft("");setDeleted(true)};
   return <div className={`email-interaction ${selected?"is-editing":""} ${deleted?"is-deleted":""}`}>
     {!selected&&<><p className="interaction-guide"><span>写入草稿</span>选择一句作者预设的回复</p>{isRevisitMode(mode)&&previous&&<button className="reuse-button" onClick={()=>{const option=options.find(item=>item.id===previous.optionId);if(option)choose(option)}}>沿用上轮：{previous.label}</button>}
       <div className="email-presets">{options.map(option=><button key={option.id} onClick={()=>choose(option)}><strong>{option.label}</strong><small>{option.detail}</small>{previous?.optionId===option.id&&isRevisitMode(mode)&&<em>上轮</em>}</button>)}</div></>}
     {selected&&<div className="email-editor" role="group" aria-label="删除未发送邮件">
       <div className="email-chrome"><span>回复：革命街上的旧书店关门了</span><i>{deleted?"草稿已清空":"未发送"}</i></div>
       <textarea readOnly value={draft} aria-label="邮件草稿内容"/>
-      {!deleted?<button className="hold-delete" onPointerDown={event=>{event.currentTarget.setPointerCapture(event.pointerId);startDelete()}} onPointerUp={stopDelete} onPointerCancel={stopDelete} onPointerLeave={stopDelete} onKeyDown={event=>{if(event.key===" "||event.key==="Enter"){event.preventDefault();startDelete()}}} onKeyUp={event=>{if(event.key===" "||event.key==="Enter")stopDelete()}}>按住删除这句话 <span aria-hidden="true">⌫</span></button>
+      {!deleted?<button className="tap-delete" type="button" onClick={deleteDraft}>点击删除这句话 <span aria-hidden="true">⌫</span></button>
       :<p className="deleted-state">光标回到空白处。句子没有寄出。</p>}
     </div>}
     {selected&&selectedData&&deleted&&<ConfirmationCard inline label="草稿删除" action={resonanceAction(selectedData)} confirmation={selectedData.confirmation} ready={ready} onCommit={onCommit}/>}
@@ -750,7 +751,7 @@ function RevisitEcho({current,previous,ready}:{current?:AnswerRecord;previous?:A
   </div>;
 }
 
-function Journal({answers,resonances,unlocked,profile,onSpecialEpilogue,onChapterRevisit,onClose,closeRef}:{answers:Record<string,AnswerRecord>;resonances:Record<string,ResonanceRecord>;unlocked:boolean;profile:ProfileStateV6;onSpecialEpilogue:()=>void;onChapterRevisit:(chapterId:ChapterId)=>void;onClose:()=>void;closeRef:React.RefObject<HTMLButtonElement|null>}){
+function Journal({answers,resonances,unlocked,profile,onClaimReward,onCopyReward,onSpecialEpilogue,onChapterRevisit,onClose,closeRef}:{answers:Record<string,AnswerRecord>;resonances:Record<string,ResonanceRecord>;unlocked:boolean;profile:ProfileStateV6;onClaimReward:(chapterId:ChapterId)=>void;onCopyReward:(code:string)=>void;onSpecialEpilogue:()=>void;onChapterRevisit:(chapterId:ChapterId)=>void;onClose:()=>void;closeRef:React.RefObject<HTMLButtonElement|null>}){
   const items=[...Object.values(resonances),...Object.values(answers)];
   const scores=scoreAnswers(answers);
   const journalRef=useRef<HTMLElement|null>(null);
@@ -775,13 +776,13 @@ function Journal({answers,resonances,unlocked,profile,onSpecialEpilogue,onChapte
       <div className="memory-notes">{items.length?items.map((item,index)=><article key={index}><span>0{index+1} · {item.motif}</span><p>{"memory" in item?item.memory:item.echo}</p></article>):<p className="empty-memory">照片、诗页、灰烬与车票还没有决定自己的位置。</p>}</div>
       {!unlocked?<div className="memory-weather"><p className="weather-title">记忆天气</p>{weather.map(item=><div key={item.label}><span>{item.label}</span><strong>{item.value}</strong></div>)}</div>
       :<div className="axis-reveal"><p>通关后解锁 · 三种动作</p>{(["speak","keep","survive"] as Axis[]).map(axis=><article key={axis}><span>{axisNames[axis]}</span><strong>{axisExplanations[axis]}</strong><i>{scores[axis]===0?"未进入本轮":scores[axis]===1?"留下痕迹":"成为主调"}</i></article>)}</div>}
-      <ArchiveProgress memory={profile.progression.memoryExposure} nextUnlock={nextMemoryUnlock(profile.progression.memoryExposure)} completedChapters={profile.progression.completedChapterIds.map(id=>chapterContractById[id].label)} collectibles={profile.progression.collectibleIds} rewards={claimedRewardIds(profile).map(id=>chapterRewardById[id].code)} unlockedDialogues={paidDialogues.filter(item=>hasDialogueAccess(profile.entitlements,item)).map(item=>item.id)} encounteredDialogues={profile.paidContent.impressionIds} paidItems={paidDialogues.map(item=>dialogueView(item.id))} paidLineVisibility={Object.fromEntries(paidDialogues.map(item=>[item.id,visibleDialogueLineCount(profile.entitlements,item)]))} previewVisible={profile.progression.memoryExposure>=61} specialEpilogueAvailable={profile.revisit.specialEpilogue!=="locked"} onSpecialEpilogue={()=>{onClose();onSpecialEpilogue()}}/>
+      <ArchiveProgress memory={profile.progression.memoryExposure} nextUnlock={nextMemoryUnlock(profile.progression.memoryExposure)} completedChapters={profile.progression.completedChapterIds.map(id=>chapterContractById[id].label)} collectibles={profile.progression.collectibleIds} rewards={claimedRewardIds(profile).map(id=>chapterRewardById[id].code)} returnFragments={profile.revisit.dailyFragmentIds.map(id=>dailyFragmentEntries.find(entry=>entry.id===id)?.text).filter((value):value is string=>Boolean(value))} rewardItems={profile.progression.completedChapterIds.map(id=>({id,label:chapterContractById[id].label.split(" · ")[0],prop:chapterRewardById[id].prop,code:chapterRewardById[id].code,status:profile.progression.chapterRewards[id]==="claimed"?"claimed" as const:"revealed" as const}))} onClaimReward={id=>onClaimReward(id as ChapterId)} onCopyReward={onCopyReward} unlockedDialogues={paidDialogues.filter(item=>hasDialogueAccess(profile.entitlements,item)).map(item=>item.id)} encounteredDialogues={profile.paidContent.impressionIds} paidItems={paidDialogues.map(item=>dialogueView(item.id))} paidLineVisibility={Object.fromEntries(paidDialogues.map(item=>[item.id,visibleDialogueLineCount(profile.entitlements,item)]))} previewVisible={profile.progression.memoryExposure>=61} specialEpilogueAvailable={profile.revisit.specialEpilogue!=="locked"} onSpecialEpilogue={()=>{onClose();onSpecialEpilogue()}}/>
       {profile.progression.completedChapterIds.length>0&&<div className="ending-actions">{profile.progression.completedChapterIds.map(id=><button key={id} className="ghost-button" onClick={()=>{onClose();onChapterRevisit(id)}}>重访{chapterContractById[id].label.split(" · ")[0]}</button>)}</div>}
       <button className="start-button compact" onClick={onClose}>回到故事</button>
     </section>
   </div>;
 }
-function EndingScreen({endingKey,answers,resonances,mode,comparisonBase,profile,specialEpilogueOpen,onSpecialEpilogue,onChapterRevisit,onFresh,onRevisit,onJournal}:{endingKey:EndingKey;answers:Record<string,AnswerRecord>;resonances:Record<string,ResonanceRecord>;mode:Mode;comparisonBase:CompletedRun|null;profile:ProfileStateV6;specialEpilogueOpen:boolean;onSpecialEpilogue:()=>void;onChapterRevisit:(chapterId:ChapterId)=>void;onFresh:(sound?:boolean)=>void;onRevisit:(kind:"quick"|"full")=>void;onJournal:(e:React.MouseEvent<HTMLButtonElement>)=>void}){
+function EndingScreen({endingKey,answers,resonances,mode,comparisonBase,profile,runMemoryGain,specialEpilogueOpen,onSpecialEpilogue,onChapterRevisit,onFresh,onRevisit,onJournal}:{endingKey:EndingKey;answers:Record<string,AnswerRecord>;resonances:Record<string,ResonanceRecord>;mode:Mode;comparisonBase:CompletedRun|null;profile:ProfileStateV6;runMemoryGain:number;specialEpilogueOpen:boolean;onSpecialEpilogue:()=>void;onChapterRevisit:(chapterId:ChapterId)=>void;onFresh:(sound?:boolean)=>void;onRevisit:(kind:"quick"|"full")=>void;onJournal:(e:React.MouseEvent<HTMLButtonElement>)=>void}){
   const ending=endings[endingKey];
   const epilogue=composeCinematicEpilogue(endingKey,answers,resonances);
   const mainFragments=composeEndingFragments(answers,{},choiceIds,[]);
@@ -796,7 +797,7 @@ function EndingScreen({endingKey,answers,resonances,mode,comparisonBase,profile,
     {profile.revisit.specialEpilogue!=="locked"&&!specialEpilogueOpen&&<button className="ghost-button" onClick={onSpecialEpilogue}>显影特别尾声</button>}
     {specialEpilogueOpen&&<blockquote className="cinematic-epilogue">过街以后，莱拉把航班时间发给卡姆兰。阿拉什回拨玛丽亚姆，问今晚的云会不会遮住流星。过去没有消失，眼前的生活也没有暂停。</blockquote>}
     <details className="ending-archive"><summary>查看本轮剪辑 / 记忆档案</summary><div className="archive-inside">
-      <div className="ending-seal"><span>本轮主调</span><strong>{ending.reveal}</strong></div><p className="archive-interpretation">{ending.body}</p>
+      <div className="ending-seal"><span>本轮主调</span><strong>{ending.reveal}</strong></div><p className="archive-interpretation">{ending.body}</p><p className="run-memory-gain">本轮新显影 +{runMemoryGain}</p>
       <section className="ending-memory-section" aria-labelledby="main-memory-title"><h3 id="main-memory-title">三个主动作</h3><div className="ending-fragments">{mainFragments.map((fragment,index)=><p key={index}><span>0{index+1}</span>{fragment}</p>)}</div></section>
       <section className="resonance-coda" aria-labelledby="resonance-coda-title"><h3 id="resonance-coda-title">三个镜头锚点</h3>{resonanceFragments.map((fragment,index)=><p key={index}>{fragment}</p>)}</section>
       {isRevisitMode(mode)&&comparisonBase&&<div className="comparison"><div className="comparison-head"><span>上轮：{endings[comparisonBase.ending].title}</span><b>→</b><span>本轮：{ending.title}</span></div>

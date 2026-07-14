@@ -232,17 +232,41 @@ test("legacy and partial profiles normalize into a safe V6 save", () => {
   assert.deepEqual(normalized.paidContent.impressionIds, [firstDialogue.id]);
   assert.deepEqual(normalized.paidContent.completedIds, []);
   assert.equal(normalized.revisit.dailyFragmentClaimCount, 2, "old saves infer the claim counter from known fragments");
+  assert.deepEqual(normalized.revisit.dailyFragmentIds, progression.dailyFragmentEntries.slice(0, 2).map(entry => entry.id), "legacy numeric fragment ids migrate to stable authored ids");
   assert.equal(normalized.revisit.visitsByChapter.chapter1, 2);
+});
+
+test("daily fragment preview is side-effect free and is consumed only by an explicit claim", () => {
+  const profile = progression.createInitialProfile();
+  const before = structuredClone(profile);
+  const firstEntry = progression.dailyFragmentEntries[0];
+  const preview = progression.previewDailyFragment(profile, "2026-07-14");
+
+  assert.deepEqual(preview, {
+    available: true,
+    fragment: firstEntry.text,
+    fragmentId: firstEntry.id,
+  });
+  assert.deepEqual(profile, before, "preview must never mutate or consume the profile");
+  assert.deepEqual(progression.previewDailyFragment(profile, "2026-07-14"), preview, "repeated previews remain stable before claiming");
+
+  const claim = progression.claimDailyFragment(profile, "2026-07-14");
+  assert.equal(claim.changed, true);
+  assert.equal(claim.fragmentId, firstEntry.id);
+  assert.deepEqual(progression.previewDailyFragment(claim.profile, "2026-07-14"), { available: false });
+  assert.equal(progression.claimDailyFragment(claim.profile, "2026-07-14").changed, false);
 });
 
 test("daily fragments are idempotent per date and continue cycling after all five", () => {
   let profile = progression.createInitialProfile();
   const received = [];
+  const receivedIds = [];
   for (let index = 0; index < 7; index += 1) {
     const dateKey = `2026-07-${String(index + 10).padStart(2, "0")}`;
     const claim = progression.claimDailyFragment(profile, dateKey);
     assert.equal(claim.changed, true);
     received.push(claim.fragment);
+    receivedIds.push(claim.fragmentId);
     const duplicate = progression.claimDailyFragment(claim.profile, dateKey);
     assert.equal(duplicate.changed, false);
     assert.equal(duplicate.profile, claim.profile);
@@ -252,6 +276,11 @@ test("daily fragments are idempotent per date and continue cycling after all fiv
     ...progression.dailyFragments,
     progression.dailyFragments[0],
     progression.dailyFragments[1],
+  ]);
+  assert.deepEqual(receivedIds, [
+    ...progression.dailyFragmentEntries.map(entry => entry.id),
+    progression.dailyFragmentEntries[0].id,
+    progression.dailyFragmentEntries[1].id,
   ]);
   assert.equal(profile.revisit.dailyFragmentClaimCount, 7);
   assert.equal(profile.revisit.dailyFragmentIds.length, progression.dailyFragments.length);
