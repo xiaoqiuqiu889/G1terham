@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
+const layout = await readFile(new URL("../app/layout.tsx", import.meta.url), "utf8");
 const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
 const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 
@@ -19,6 +20,11 @@ test("reset remains reachable on title and during the story", () => {
   assert.match(page, /onReset=\{\(\)=>setResetConfirmOpen\(true\)\}/);
 });
 
+test("mobile document declares a device-width viewport", () => {
+  assert.match(layout, /export const viewport: Viewport/);
+  assert.match(layout, /width: "device-width"/);
+  assert.match(layout, /initialScale: 1/);
+});
 test("mobile layout neutralizes browser text inflation and protects touch targets", () => {
   assert.match(css, /-webkit-text-size-adjust:100%/);
   assert.match(css, /button\{touch-action:manipulation\}/);

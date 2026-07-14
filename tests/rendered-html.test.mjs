@@ -16,6 +16,7 @@ test("server renders the current memory-editing title screen", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
+  assert.equal(response.headers.get("cache-control"), "no-store, no-cache, must-revalidate");
   const html = await response.text();
   assert.match(html, /<title>革命街没有尽头/);
   assert.match(html, /互动叙事 · 记忆剪辑/);
@@ -30,5 +31,6 @@ test("ships Chinese accessibility metadata and no starter content", async () => 
   const response = await render();
   const html = await response.text();
   assert.match(html, /lang="zh-CN"/);
+  assert.match(html, /<meta name="viewport" content="width=device-width, initial-scale=1"\/>/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 });
