@@ -36,108 +36,108 @@ const interaction = (value: InteractionContract) => value;
 export const interactionCatalog: readonly InteractionContract[] = [
   interaction({
     id: "photo-placement", chapterId: "chapter1", sceneId: "photo", kind: "photo", requirement: "required", handledByScene: true,
-    title: "安放毕业照", prompt: "拿起女生保存的那张照片，决定它如何等待男生。",
-    action: "拖动、翻面，或把照片收回帆布包。", completion: "纸边擦过桌布。十三年前的两张照片，先有一张找到了位置。", memoryGain: 5,
-    clue: { id: "two-identical-prints", label: "两次冲洗", text: "毕业那天冲洗了两张相同照片。后来，他们各自保留一张。" },
-    collectible: { id: "leila-graduation-photo", label: "女生的毕业照", motif: "photo", description: "边角被机场与抽屉磨得发白的一张。" },
+    title: "安放毕业照", prompt: "拿起毕业照，决定它怎样等待男生。",
+    action: "翻面、放桌上，或收回包里。", completion: "纸边擦过桌布。一张照片有了位置。", memoryGain: 5,
+    clue: { id: "two-identical-prints", label: "两次冲洗", text: "毕业日冲洗了两张同版照片，两人各留一张。" },
+    collectible: { id: "leila-graduation-photo", label: "女生的毕业照", motif: "photo", description: "边角被机场与抽屉磨白。" },
   }),
   interaction({
     id: "projector-repair", chapterId: "chapter1", sceneId: "campus", kind: "projector", requirement: "required", handledByScene: true, isCore: true,
-    title: "修好旧放映机", prompt: "先校准焦距，再把错位的画面推回银幕中央。",
-    action: "完成两段修理，并从闪回画面里认出共同记忆。", completion: "齿轮重新咬合。黑暗里，两个人同时说：别松手。", memoryGain: 7,
-    clue: { id: "projector-toolbox-note", label: "工具箱里的折痕", text: "男生把每次约会时间写在维修清单背面，最早的一条只有三个字：我到了。" },
-    collectible: { id: "underground-film-ticket", label: "地下放映会电影票", motif: "ticket", description: "日期被机油晕开，座位号仍看得清。" },
+    title: "修好旧放映机", prompt: "校准焦距，把画面推回银幕中央。",
+    action: "修好两处，再认出画里的共同记忆。", completion: "齿轮重新咬合。两人同时说：别松手。", memoryGain: 7,
+    clue: { id: "projector-toolbox-note", label: "工具箱里的折痕", text: "约会时间写在清单背面。最早一条：我到了。" },
+    collectible: { id: "underground-film-ticket", label: "地下放映会电影票", motif: "ticket", description: "日期被机油晕开，座位号仍清楚。" },
   }),
   interaction({
     id: "first-memory-action", chapterId: "chapter1", sceneId: "choice-one", kind: "choice", requirement: "required", handledByScene: true,
     title: "停电后的第一个动作", prompt: "让女生先说、先靠近，或先确认出口。",
-    action: "作出第一段主记忆选择。", completion: "放映机尚未亮起，这个动作已经留在他们往后的停电里。", memoryGain: 6,
-    clue: { id: "first-do-not-let-go", label: "第一次“别松手”", text: "年轻时它像一句玩笑；后来，他们才知道手会在什么时候松开。" },
+    action: "选择停电后的第一个动作。", completion: "放映机未亮，这个动作先留了下来。", memoryGain: 6,
+    clue: { id: "first-do-not-let-go", label: "第一次“别松手”", text: "当时像玩笑。后来，他们真的松了手。" },
   }),
   interaction({
     id: "publication-clues", chapterId: "chapter2", sceneId: "publication", kind: "explore", requirement: "optional",
-    title: "检查刊物桌面", prompt: "查看打字机、退稿信和刊物末页，弄清学校为什么传唤他们。",
-    action: "依次查看三个有用途的物件。", steps: ["触摸打字机上发干的色带", "展开出版社退回的信", "掀起刊物最后一页的折角"],
-    completion: "刊物报道了三名失踪学生。第二天，学校开始追问其他编辑是谁。", memoryGain: 5,
+    title: "检查刊物桌面", prompt: "查看三件物品，弄清学校为何传唤他们。",
+    action: "依次查看三件物品。", steps: ["触摸打字机上发干的色带", "展开出版社退回的信", "掀起刊物最后一页的折角"],
+    completion: "刊物写了三名失踪学生。次日，学校追查。", memoryGain: 5,
     clue: { id: "maziya-last-note", label: "玛兹雅的页边字", text: "她写：如果我没回来，先把这一期保存好。" },
-    collectible: { id: "publication-margin", label: "刊物页边", motif: "paper", description: "印着半句被裁掉的诗和玛兹雅画下的蓝色太阳。" },
+    collectible: { id: "publication-margin", label: "刊物页边", motif: "paper", description: "半句诗旁，画着玛兹雅的蓝色太阳。" },
   }),
   interaction({
     id: "names-decision", chapterId: "chapter2", sceneId: "choice-two", kind: "choice", requirement: "required", handledByScene: true, isCore: true,
-    title: "是否告发同伴", prompt: "只承认自己、拒绝告发，或说出同伴的名字。",
-    action: "承担一种收益，也承担它留下的代价。", completion: "记录员合上本子。无论她怎样回答，处分程序都会继续。", memoryGain: 7,
-    clue: { id: "twenty-eight-names", label: "问话记录", text: "调查者问谁参与了刊物；她的回答会在多年后以不同方式回来。" },
+    title: "是否告发同伴", prompt: "承认自己、拒绝告发，或说出同伴名字。",
+    action: "做出选择，也承担代价。", completion: "记录员合上本子。处分仍会继续。", memoryGain: 7,
+    clue: { id: "twenty-eight-names", label: "问话记录", text: "调查者追问同伴。她的回答会在多年后回来。" },
   }),
   interaction({
     id: "discipline-record", chapterId: "chapter2", sceneId: "echo-two", kind: "explore", requirement: "optional",
-    title: "翻看纪律记录", prompt: "从印章日期、缺席记录和释放通知中确认玛兹雅的去向。",
-    action: "把三处记录按时间排好。", steps: ["核对带走当夜的印章日期", "把六个月缺席记录接在后面", "最后展开设拉子寄来的释放通知"],
-    completion: "玛兹雅六个月后获释，没有回到大学。她后来在设拉子的儿童图书馆工作。", memoryGain: 6,
-    clue: { id: "maziya-fixed-future", label: "玛兹雅的后来", text: "她活了下来，也失去了原来的生活。女生在问话室里的回答不会改写这个结果。" },
-    collectible: { id: "discipline-stamp", label: "纪律委员会印章拓片", motif: "ash", description: "红色印泥盖住了女生的继续深造资格。" },
+    title: "翻看纪律记录", prompt: "从三份记录中确认玛兹雅的去向。",
+    action: "按时间排好三份记录。", steps: ["核对带走日期", "接上六个月缺席记录", "展开获释通知"],
+    completion: "玛兹雅六个月后获释，去了儿童图书馆。", memoryGain: 6,
+    clue: { id: "maziya-fixed-future", label: "玛兹雅的后来", text: "她活了下来，却没再回大学。这个结果不变。" },
+    collectible: { id: "discipline-stamp", label: "纪律委员会印章拓片", motif: "ash", description: "红印盖住了女生的深造资格。" },
   }),
   interaction({
     id: "departure-packing", chapterId: "chapter3", sceneId: "small-room", kind: "explore", requirement: "optional",
-    title: "整理离开前的桌面", prompt: "钥匙、复健单和护照申请放在同一张桌上，却指向三个方向。",
-    action: "依次翻看出租屋钥匙、父亲的复健单与没有回音的护照申请。", steps: ["拿起出租屋钥匙", "展开父亲的复健单", "翻到护照申请最后一页"],
-    completion: "女生把钥匙推回男生一侧。离开第一次有了可触摸的重量。", memoryGain: 5,
+    title: "整理离开前的桌面", prompt: "三件物品，指向三种去处。",
+    action: "依次翻看钥匙、复健单与护照申请。", steps: ["拿起出租屋钥匙", "展开父亲的复健单", "翻到护照申请最后一页"],
+    completion: "女生把钥匙推回去。离开有了重量。", memoryGain: 5,
     clue: { id: "three-directions", label: "三个方向", text: "留下不是一句理想；离开也不是一句背叛。" },
-    collectible: { id: "rental-room-key", label: "出租屋钥匙", motif: "ticket", description: "他们曾经共同生活过的最普通证据。" },
+    collectible: { id: "rental-room-key", label: "出租屋钥匙", motif: "ticket", description: "他们共同生活过的普通证据。" },
   }),
   interaction({
     id: "last-night-truth", chapterId: "chapter3", sceneId: "choice-three", kind: "choice", requirement: "required", handledByScene: true,
-    title: "完成最后一夜", prompt: "把卡姆兰与机票说到什么程度，由女生亲手决定。",
-    action: "选择全部说完、再问一条共同的路，或只说航班。", completion: "三种说法都通向机场；只有沉默的形状不同。", memoryGain: 7,
-    clue: { id: "sealed-flight-envelope", label: "装着航班的信封", text: "卡姆兰的名字是否被说出，会在十三年后的路口回来。" },
+    title: "完成最后一夜", prompt: "卡姆兰和机票，要说到什么程度？",
+    action: "全说、请求同行，或只说航班。", completion: "三种说法都通向机场，沉默不同。", memoryGain: 7,
+    clue: { id: "sealed-flight-envelope", label: "装着航班的信封", text: "是否说出卡姆兰，会在十三年后回来。" },
   }),
   interaction({
     id: "airport-goodbye", chapterId: "chapter3", sceneId: "echo-three", kind: "silence", requirement: "required", isCore: true,
-    title: "握住，然后松开", prompt: "广播响起以前握住他的手；行李箱开始移动时，由你松开。",
-    action: "按住画面，直到广播抵达；再让手回到各自一侧。", steps: ["握住他的手", "听完登机广播", "让行李箱越过黄线"],
-    completion: "她写下“我到了”，没有发送。最后，是行李箱轮子把他们分开。", memoryGain: 5,
-    clue: { id: "unsent-arrival", label: "未发送的“我到了”", text: "年轻时它是赴约；这一次，它只留在草稿里。" },
-    collectible: { id: "one-way-luggage-tag", label: "单程行李牌", motif: "ticket", description: "目的地很清楚，告别没有。" },
+    title: "握住，然后松开", prompt: "广播前握住他；行李移动时松开。",
+    action: "按住画面，听完广播，再松手。", steps: ["握住他的手", "听完登机广播", "让行李箱越过黄线"],
+    completion: "她写下“我到了”，没发送。行李箱带她离开。", memoryGain: 5,
+    clue: { id: "unsent-arrival", label: "未发送的“我到了”", text: "年轻时是赴约，这次只留在草稿里。" },
+    collectible: { id: "one-way-luggage-tag", label: "单程行李牌", motif: "ticket", description: "目的地清楚，告别没有。" },
   }),
   interaction({
     id: "dual-city-objects", chapterId: "chapter4", sceneId: "two-cities", kind: "combine", requirement: "optional",
-    title: "对齐两座城市", prompt: "把圣何塞的底片编号与德黑兰的观测日期放在同一条时间线上。",
-    action: "组合底片、手写日期与同一天的流星记录。", steps: ["卡姆兰的底片编号", "玛丽亚姆的流星日期"],
-    completion: "十三小时的时差里，两个人都把同一天藏在手边。", memoryGain: 5,
-    clue: { id: "parallel-date", label: "同一天", text: "旧爱没有让现在的生活暂停；现在的生活也没有抹掉旧日。" },
+    title: "对齐两座城市", prompt: "把底片编号与观测日期放到同一天。",
+    action: "组合底片编号与流星记录。", steps: ["卡姆兰的底片编号", "玛丽亚姆的流星日期"],
+    completion: "隔着十三小时，他们留下了同一天。", memoryGain: 5,
+    clue: { id: "parallel-date", label: "同一天", text: "现在没有抹掉旧日，旧爱也没暂停生活。" },
     collectible: { id: "parallel-date-card", label: "双城日期卡", motif: "photo", description: "一边是底片编号，一边是流星时间。" },
   }),
   interaction({
     id: "email-draft", chapterId: "chapter4", sceneId: "email", kind: "email", requirement: "required", handledByScene: true, isCore: true,
-    title: "处理未发送邮件", prompt: "写下一句，再亲手删除。删除不等于从记忆里消失。",
-    action: "选择一句作者预设文本并逐字删除。", completion: "屏幕重新空白；卷宗里留下了句子的残影。", memoryGain: 7,
-    clue: { id: "deleted-draft-shadow", label: "删除后的残影", text: "被删除的句子会改变重逢时她先认出的东西。" },
+    title: "处理未发送邮件", prompt: "写下一句，再亲手删除。",
+    action: "选一句话，再逐字删除。", completion: "屏幕空了，句子仍留下残影。", memoryGain: 7,
+    clue: { id: "deleted-draft-shadow", label: "删除后的残影", text: "被删的句子，会改变她重逢时的第一眼。" },
   }),
   interaction({
     id: "receipt-memory-combination", chapterId: "chapter4", sceneId: "last-email", kind: "combine", requirement: "optional",
-    title: "把草稿与照片收在一起", prompt: "将邮件草稿残影与卡姆兰刚洗好的黑白照片叠在一起。",
-    action: "组合未发送草稿与雾中高速公路照片。", steps: ["未发送邮件残影", "雾中高速公路底片"],
+    title: "把草稿与照片收在一起", prompt: "把邮件残影与黑白照片叠在一起。",
+    action: "组合草稿与高速公路底片。", steps: ["未发送邮件残影", "雾中高速公路底片"],
     completion: "她说照片不像革命街，却把它贴在冰箱上。", memoryGain: 4,
-    collectible: { id: "draft-shadow", label: "未发送邮件残影", motif: "email", description: "没有寄出，仍然属于她完整生活的一部分。" },
+    collectible: { id: "draft-shadow", label: "未发送邮件残影", motif: "email", description: "没有寄出，却仍属于她的生活。" },
   }),
   interaction({
     id: "reunion-gaze", chapterId: "chapter5", sceneId: "gaze", kind: "gaze", requirement: "required", handledByScene: true,
     title: "决定第一眼", prompt: "先看手与白发、旧诗集，或时钟与机场方向。",
-    action: "让视线真实落到画面中的一个位置。", completion: "门开了。男生说：“我到了。”女生回答：“我知道。”", memoryGain: 5,
-    clue: { id: "arrival-finally", label: "终于抵达", text: "同一句“我到了”，隔了十三年才真正抵达彼此面前。" },
+    action: "把视线落在画面的一处。", completion: "门开了。男生说：“我到了。”", memoryGain: 5,
+    clue: { id: "arrival-finally", label: "终于抵达", text: "这句“我到了”，迟了十三年。" },
   }),
   interaction({
     id: "photo-pairing", chapterId: "chapter5", sceneId: "book", kind: "combine", requirement: "required", isCore: true,
-    title: "对齐两张相同照片", prompt: "翻看两张照片的磨损，再把它们放进同一个取景框。",
-    action: "组合女生的折角照片与男生夹在诗集里的照片。", steps: ["女生保存的雨痕折角", "男生保存的书页黄斑"],
-    completion: "同一次冲印。两种磨损。没有一张被丢掉。", memoryGain: 6,
+    title: "对齐两张相同照片", prompt: "比较磨损，再把两张照片放进同一画框。",
+    action: "组合女生的折角与男生的书页黄斑。", steps: ["女生保存的雨痕折角", "男生保存的书页黄斑"],
+    completion: "同次冲印，两种磨损。都没被丢掉。", memoryGain: 6,
     collectible: { id: "paired-graduation-photos", label: "两张同版毕业照", motif: "photo", description: "站位相同，十三年的磨损不同。" },
   }),
   interaction({
     id: "final-crossroad", chapterId: "chapter5", sceneId: "crossroads", kind: "silence", requirement: "required",
-    title: "走到路中央", prompt: "人群涌来时握住衣袖；到分岔处，再亲手松开。",
-    action: "按住越过人群，再在绿灯结束前放手。", steps: ["握住衣袖", "穿过路中央", "在分岔处松开"],
-    completion: "这一次，他们把再见走完。眼前的生活没有暂停。", memoryGain: 5,
-    clue: { id: "last-do-not-let-go", label: "最后一次“别松手”", text: "他们只握到路中央，然后成熟地放开。" },
+    title: "走到路中央", prompt: "握住衣袖走到分岔，再松手。",
+    action: "穿过人群，在绿灯结束前放手。", steps: ["握住衣袖", "穿过路中央", "在分岔处松开"],
+    completion: "这一次，他们说完再见，回到各自生活。", memoryGain: 5,
+    clue: { id: "last-do-not-let-go", label: "最后一次“别松手”", text: "他们握到路中央，然后放开。" },
   }),
 ];
 
@@ -170,7 +170,7 @@ export const paidDialogues: readonly PaidDialogueContract[] = [
   {
     id: "paid-photo-developing", chapterId: "chapter1", anchorSceneId: "promise", title: "两张相同的照片",
     previewLine: "“照片要冲两张吗？”",
-    lockedLines: ["男生：“一样的两张。她带一张。”", "女生：“另一张呢？”", "男生：“我留着。免得以后有人说，我们那天没站在一起。”"],
+    lockedLines: ["男生：“一样的两张。她带一张。”", "女生：“另一张呢？”", "男生：“我留着。证明那天我们站在一起。”"],
     archiveTitle: "冲洗照片时没有继续说完的话",
   },
   {
@@ -181,20 +181,20 @@ export const paidDialogues: readonly PaidDialogueContract[] = [
   },
   {
     id: "paid-marriage-truth", chapterId: "chapter3", anchorSceneId: "kamran", title: "视频挂断以前",
-    previewLine: "卡姆兰：“我知道你不是因为爱我才答应这次见面。”",
-    lockedLines: ["女生：“我需要一条能离开的路。这一点，我不能假装。”", "卡姆兰：“我也不接受没有代价的假装。结婚以后，我们得把生活当真的。”", "女生：“我会认真和你生活，但不会把过去删掉。”", "卡姆兰：“那就不删。我们只答应，不拿沉默惩罚对方。”"],
+    previewLine: "卡姆兰：“我知道，你不是因为爱我。”",
+    lockedLines: ["女生：“我需要一条离开的路，不能假装。”", "卡姆兰：“婚后，我们得把生活当真。”", "女生：“我会认真和你生活，但不会把过去删掉。”", "卡姆兰：“不删，也别用沉默惩罚彼此。”"],
     archiveTitle: "婚前视频里说清的边界",
   },
   {
     id: "paid-two-cities-choice", chapterId: "chapter4", anchorSceneId: "two-cities", title: "望远镜旁的答案",
-    previewLine: "玛丽亚姆：“如果那年可以重新选一次，你会跟她走吗？”",
-    lockedLines: ["男生：“我会先把父亲安顿好，再问她愿不愿等。”", "“可那一年，她已经等完了。”", "玛丽亚姆：“所以答案不是会不会走。”", "男生：“是我会不会早点把不能走说清楚。”"],
+    previewLine: "玛丽亚姆：“若能重选，你会跟她走吗？”",
+    lockedLines: ["男生：“我会先安顿父亲，再问她愿不愿等。”", "“可那一年，她已经等完了。”", "玛丽亚姆：“所以答案不是会不会走。”", "男生：“是我会不会早点把不能走说清楚。”"],
     archiveTitle: "两座城市里最诚实的回答",
   },
   {
     id: "paid-reunion-hypothesis", chapterId: "chapter5", anchorSceneId: "book", title: "一个没有发生的假设",
     previewLine: "女生：“如果我们现在都没有结婚呢？”",
-    lockedLines: ["男生：“那我们会不会又把亏欠误认成爱情？”", "女生：“也许。也许我们只会一起喝完这杯茶。”", "男生：“然后呢？”", "女生：“然后各自回家。只是这次，把再见说完。”"],
+    lockedLines: ["男生：“我们会不会把亏欠当成爱情？”", "女生：“也许。我们只会喝完这杯茶。”", "男生：“然后呢？”", "女生：“各自回家。这次把再见说完。”"],
     archiveTitle: "旧书旁没有继续追问的假设",
   },
 ];
@@ -209,11 +209,11 @@ export interface ChapterRewardContract {
 }
 
 export const chapterRewards: readonly ChapterRewardContract[] = [
-  { chapterId: "chapter1", sourceSceneId: "promise", prop: "照片背面的冲印批次号", code: "JD-DEMO-LOVE-01", nextHint: "下一枚藏在一页不该有压痕的旧书里。", disclaimer: "演示礼包码，无实际面值，暂不可兑换。" },
-  { chapterId: "chapter2", sourceSceneId: "after-gate", prop: "处分通知的档案编号", code: "JD-DEMO-NAMES-02", nextHint: "下一枚字符，跟着一张只写目的地的行李牌。", disclaimer: "演示礼包码，无实际面值，暂不可兑换。" },
-  { chapterId: "chapter3", sourceSceneId: "echo-three", prop: "单程行李牌背面的字符", code: "JD-DEMO-ROAD-03", nextHint: "下一枚不在一座城市里。找两处相同的时间。", disclaimer: "演示礼包码，无实际面值，暂不可兑换。" },
-  { chapterId: "chapter4", sourceSceneId: "last-email", prop: "未发送邮件的系统元数据", code: "JD-DEMO-CITIES-04", nextHint: "最后一枚藏在一杯茶和两张旧纸之间。", disclaimer: "演示礼包码，无实际面值，暂不可兑换。" },
-  { chapterId: "chapter5", sourceSceneId: "crossroads", prop: "咖啡小票底部的纪念编码", code: "JD-DEMO-MEMORY-05", nextHint: "5/5。终章纪念礼物待解锁。", disclaimer: "演示礼包码，无实际面值，暂不可兑换。" },
+  { chapterId: "chapter1", sourceSceneId: "promise", prop: "照片背面的冲印批次号", code: "JD-DEMO-LOVE-01", nextHint: "下一枚藏在旧书的压痕里。", disclaimer: "演示码，无实际面值，不可兑换。" },
+  { chapterId: "chapter2", sourceSceneId: "after-gate", prop: "处分通知的档案编号", code: "JD-DEMO-NAMES-02", nextHint: "下一枚跟着单程行李牌。", disclaimer: "演示码，无实际面值，不可兑换。" },
+  { chapterId: "chapter3", sourceSceneId: "echo-three", prop: "单程行李牌背面的字符", code: "JD-DEMO-ROAD-03", nextHint: "下一枚藏在两座城市的同一天。", disclaimer: "演示码，无实际面值，不可兑换。" },
+  { chapterId: "chapter4", sourceSceneId: "last-email", prop: "未发送邮件的系统元数据", code: "JD-DEMO-CITIES-04", nextHint: "最后一枚藏在茶与旧纸间。", disclaimer: "演示码，无实际面值，不可兑换。" },
+  { chapterId: "chapter5", sourceSceneId: "crossroads", prop: "咖啡小票底部的纪念编码", code: "JD-DEMO-MEMORY-05", nextHint: "5/5。终章纪念礼物待解锁。", disclaimer: "演示码，无实际面值，不可兑换。" },
 ];
 
 export interface ChapterContract {
@@ -228,11 +228,11 @@ export interface ChapterContract {
 }
 
 export const chapterContracts: readonly ChapterContract[] = [
-  { id: "chapter1", label: "第一章 · 革命街上的恋人", emotionalTask: "相信他们曾经真的幸福。", coreInteractionId: "projector-repair", endSceneId: "promise", completionMemory: 3, nextTeaser: "学校会问：谁和你一起做了刊物？", revisitChange: "投影里会多出你上轮保存的第一个动作。" },
-  { id: "chapter2", label: "第二章 · 知识变成证据", emotionalTask: "看见分开并非不爱。", coreInteractionId: "names-decision", endSceneId: "after-gate", completionMemory: 3, nextTeaser: "一张单程行李牌正在等她签字。", revisitChange: "处分记录会按她当年的回答改变。" },
-  { id: "chapter3", label: "第三章 · 只有一个人能够离开", emotionalTask: "亲手完成一次遗憾。", coreInteractionId: "airport-goodbye", endSceneId: "echo-three", completionMemory: 3, nextTeaser: "两座城市会在同一天留下相同编号。", revisitChange: "机场会记住你松手的时刻。" },
-  { id: "chapter4", label: "第四章 · 两个城市", emotionalTask: "看见两人都保留着同一段记忆。", coreInteractionId: "email-draft", endSceneId: "last-email", completionMemory: 3, nextTeaser: "咖啡馆里，有人带来了另一张照片。", revisitChange: "被删掉的句子会以残影重新出现。" },
-  { id: "chapter5", label: "第五章 · 伊斯坦布尔重逢", emotionalTask: "让重逢成为迟到十三年的回答。", coreInteractionId: "photo-pairing", endSceneId: "crossroads", completionMemory: 3, nextTeaser: "完整卷宗与特别尾声等待显影。", revisitChange: "桌面会尊重你最初放置照片的方向。" },
+  { id: "chapter1", label: "第一章 · 革命街上的恋人", emotionalTask: "相信他们曾经真的幸福。", coreInteractionId: "projector-repair", endSceneId: "promise", completionMemory: 3, nextTeaser: "学校会问：谁是你的同伴？", revisitChange: "投影会记住你上轮的动作。" },
+  { id: "chapter2", label: "第二章 · 知识变成证据", emotionalTask: "看见分开并非不爱。", coreInteractionId: "names-decision", endSceneId: "after-gate", completionMemory: 3, nextTeaser: "一张单程行李牌等她签字。", revisitChange: "处分记录会回应她的答案。" },
+  { id: "chapter3", label: "第三章 · 只有一个人能够离开", emotionalTask: "亲手完成一次遗憾。", coreInteractionId: "airport-goodbye", endSceneId: "echo-three", completionMemory: 3, nextTeaser: "两座城市会留下同一天。", revisitChange: "机场会记住你松手的时刻。" },
+  { id: "chapter4", label: "第四章 · 两个城市", emotionalTask: "看见两人都保留着同一段记忆。", coreInteractionId: "email-draft", endSceneId: "last-email", completionMemory: 3, nextTeaser: "咖啡馆里，另一张照片出现了。", revisitChange: "删掉的句子会留下残影。" },
+  { id: "chapter5", label: "第五章 · 伊斯坦布尔重逢", emotionalTask: "让重逢成为迟到十三年的回答。", coreInteractionId: "photo-pairing", endSceneId: "crossroads", completionMemory: 3, nextTeaser: "完整卷宗等待显影。", revisitChange: "桌面会记住照片的方向。" },
 ];
 
 export function firstRunRequiredMemory(): number {
@@ -257,7 +257,7 @@ export const chapterEndByScene = Object.fromEntries(chapterContracts.map(item =>
 
 export type MemoryTier = "base" | "inner" | "details" | "preview" | "archive";
 export const memoryTierLabels: Record<MemoryTier, string> = {
-  base: "基础剧情", inner: "内心独白", details: "场景细节与纪念物", preview: "隐藏对白预览", archive: "完整记忆卷宗与特别尾声",
+  base: "基础剧情", inner: "内心独白", details: "场景细节与纪念物", preview: "隐藏对白预览", archive: "完整卷宗与特别尾声",
 };
 export function clampMemory(value: number) { return Math.max(0, Math.min(100, Math.round(value || 0))); }
 export function memoryTier(value: number): MemoryTier {
@@ -432,9 +432,9 @@ export function availablePurchaseOffers(profile:ProfileStateV6,dialogue:PaidDial
   if(!profile.entitlements.fullPass)candidates.push("full-pass");
   return candidates.map((productId):PurchaseOffer=>{
     const pricing=computeUpgradeCredit(profile,productId);
-    if(productId==="full-pass")return{productId,scope:"all-dialogues",label:"五章隐藏对白通行证",description:"在剧情抵达时显影五章隐藏对白。",listPriceFen:pricing.paidFen,creditFen:pricing.creditFen,payableFen:pricing.displayFen,recommended:productId===recommendedProductId};
-    if(productId.startsWith("chapter:"))return{productId,scope:"chapter-dialogue",label:"本章完整对话",description:"补齐本章当前对话的全部剩余句子。",listPriceFen:pricing.paidFen,creditFen:pricing.creditFen,payableFen:pricing.displayFen,recommended:productId===recommendedProductId};
-    return{productId,scope:"next-line",label:"显影下一句",description:"只续接当前隐藏对白的下一句。",listPriceFen:pricing.paidFen,creditFen:pricing.creditFen,payableFen:pricing.displayFen,recommended:productId===recommendedProductId};
+    if(productId==="full-pass")return{productId,scope:"all-dialogues",label:"五章隐藏对白通行证",description:"随剧情显影五章隐藏对白。",listPriceFen:pricing.paidFen,creditFen:pricing.creditFen,payableFen:pricing.displayFen,recommended:productId===recommendedProductId};
+    if(productId.startsWith("chapter:"))return{productId,scope:"chapter-dialogue",label:"本章完整对话",description:"补齐本章剩余对白。",listPriceFen:pricing.paidFen,creditFen:pricing.creditFen,payableFen:pricing.displayFen,recommended:productId===recommendedProductId};
+    return{productId,scope:"next-line",label:"显影下一句",description:"只显影下一句对白。",listPriceFen:pricing.paidFen,creditFen:pricing.creditFen,payableFen:pricing.displayFen,recommended:productId===recommendedProductId};
   });
 }
 
@@ -477,11 +477,11 @@ export function claimedRewardIds(profile:ProfileStateV6):ChapterId[]{
   return chapterIds.filter(id=>profile.progression.chapterRewards[id]==="claimed");
 }
 export const dailyFragmentEntries=[
-  {id:"kamran-kitchen-photo",text:"卡姆兰把新洗的照片晾在厨房。他总把女生选中的那张放在最前面。"},
-  {id:"mariam-meteor-probability",text:"玛丽亚姆记下今晚流星出现的概率。男生替她把望远镜又校准了一次。"},
-  {id:"maziya-library-poetry",text:"玛兹雅在儿童图书馆修补一本缺页的诗集。她没有再问女生当年在问话室里说了什么。"},
-  {id:"leila-arrival-message",text:"女生在机场落地后给卡姆兰发了一句：我到了。这一次，消息成功送达。"},
-  {id:"arash-bus-tickets",text:"男生把两张旧公交票换到新书里。纸边碎了一点，目的地仍在。"},
+  {id:"kamran-kitchen-photo",text:"卡姆兰晾起新照片，把她选的放最前。"},
+  {id:"mariam-meteor-probability",text:"玛丽亚姆记下流星概率。男生校准望远镜。"},
+  {id:"maziya-library-poetry",text:"玛兹雅在图书馆补诗集。她没问当年答案。"},
+  {id:"leila-arrival-message",text:"女生落地后给卡姆兰发：我到了。消息送达。"},
+  {id:"arash-bus-tickets",text:"男生把旧车票夹进新书。目的地还在。"},
 ] as const;
 export const dailyFragments= dailyFragmentEntries.map(entry=>entry.text);
 

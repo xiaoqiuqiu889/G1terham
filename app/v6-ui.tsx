@@ -94,8 +94,8 @@ export function PaidDialogueOverlay({dialogue,unlockedLineCount,fullAccess,hasAc
     <p className="kicker">他们没有说出口的话</p><h2 id="paid-dialogue-title">{dialogue.title}</h2><blockquote>{dialogue.previewLine}</blockquote>
     {visibleLines.length>0&&<div className="locked-dialogue-lines unlocked" aria-label={"已显影 "+visibleLines.length+" 句"}>{visibleLines.map((line,index)=><p key={"visible-"+index}>{line}</p>)}</div>}
     {lockedLines.length>0&&<div className="locked-dialogue-lines" aria-label={"仍有 "+lockedLines.length+" 句未解锁"}>{lockedLines.map((_,index)=><p key={"locked-"+index}><span aria-label={"第 "+(visibleCount+index+1)+" 句尚未解锁"}>这句话仍留在沉默里</span></p>)}</div>}
-    {!fullyUnlocked?<><strong className="locked-count">{visibleCount>0?`已显影 ${visibleCount} 句，剩余 ${remaining} 句未解锁`:`剩余 ${remaining} 句未解锁`}</strong><p className="commerce-note">主线与结局已经完整。以下只是不同范围的本地对白显影演示，不会发起真实交易。</p>{activeOffers.length>0&&onUnlock&&<div className="commerce-offers" aria-label="选择对白显影范围">{activeOffers.map(item=><button key={item.productId||item.label} className={`purchase-button ${item.recommended?"recommended":""}`} onClick={()=>onUnlock(item.productId)}><span>{item.recommended&&<em>推荐</em>}<b>{item.label}</b>{item.description&&<small>{item.description}</small>}</span><strong>{item.price}{item.creditText&&<small>{item.creditText}</small>}</strong></button>)}</div>}<div className="modal-actions"><button ref={primaryRef} className="ghost-button" onClick={exitAction}>{visibleCount>0?"带着已显影对白继续":"继续免费主线"}</button></div></>
-    :<><p className="commerce-note">全部对白已永久收入记忆卷宗。</p><button ref={primaryRef} className="start-button compact" onClick={onContinue}>带着这段话继续</button></>}
+    {!fullyUnlocked?<><strong className="locked-count">{visibleCount>0?`已显影 ${visibleCount} 句，剩余 ${remaining} 句未解锁`:`剩余 ${remaining} 句未解锁`}</strong><p className="commerce-note">主线与结局已完整。以下为本地对白演示，不会真实付费。</p>{activeOffers.length>0&&onUnlock&&<div className="commerce-offers" aria-label="选择对白显影范围">{activeOffers.map(item=><button key={item.productId||item.label} className={`purchase-button ${item.recommended?"recommended":""}`} onClick={()=>onUnlock(item.productId)}><span>{item.recommended&&<em>推荐</em>}<b>{item.label}</b>{item.description&&<small>{item.description}</small>}</span><strong>{item.price}{item.creditText&&<small>{item.creditText}</small>}</strong></button>)}</div>}<div className="modal-actions"><button ref={primaryRef} className="ghost-button" onClick={exitAction}>{visibleCount>0?"带着已显影对白继续":"继续免费主线"}</button></div></>
+    :<><p className="commerce-note">全部对白已收入记忆卷宗。</p><button ref={primaryRef} className="start-button compact" onClick={onContinue}>带着这段话继续</button></>}
   </section></div>;
 }
 
@@ -122,9 +122,9 @@ export function ChapterSettlementOverlay({chapterLabel,memoryEarned,collectibleC
   },[]);
   return <div className="story-modal-backdrop reward-backdrop" role="dialog" aria-modal="true" aria-labelledby="chapter-reward-title"><section ref={dialogRef} className="chapter-settlement">
     <div className="reward-prop" aria-hidden="true"><span>{reward.prop}</span><i/></div><p className="kicker">{chapterLabel} · 章节完成</p><h2 id="chapter-reward-title">章节纪念彩蛋已显影</h2>
-    <p className="reward-copy">有些东西，他们没能带到后来。你替他们留住了。</p><div className="reward-code"><span>章节纪念演示码</span><strong>{reward.code}</strong></div>
-    <p className="reward-disclaimer">{reward.disclaimer} 本演示不代表任何品牌合作或真实权益。</p><div className="settlement-stats"><span>本章显影 +{memoryEarned}</span><span>纪念物 {collectibleCount}</span><span>未完整对白 {missedDialogueCount}</span><span>本章 {chapterIndex}/5 · 卷宗 {collectedRewardCount}/5</span></div>
-    <p className="next-teaser"><span>下一章线索</span>{nextTeaser}</p><div className="modal-actions"><button ref={primaryRef} className="start-button compact" onClick={claimed?onContinue:onClaim}>{claimed?"继续下一章":"收入记忆卷宗"}</button><button className="ghost-button" onClick={onCopy}>复制演示码</button>{!claimed&&<button className="ghost-button" onClick={onContinue}>暂不领取，继续</button>}</div>
+    <p className="reward-copy">他们没能带走的，你替他们留住了。</p><div className="reward-code"><span>章节纪念演示码</span><strong>{reward.code}</strong></div>
+    <p className="reward-disclaimer">{reward.disclaimer}</p><div className="settlement-stats"><span>本章显影 +{memoryEarned}</span><span>纪念物 {collectibleCount}</span><span>未完整对白 {missedDialogueCount}</span><span>本章 {chapterIndex}/5 · 卷宗 {collectedRewardCount}/5</span></div>
+    <p className="next-teaser"><span>下一章线索</span>{nextTeaser}</p><div className="modal-actions"><button ref={primaryRef} className="start-button compact" onClick={claimed?onContinue:onClaim}>{claimed?"继续下一章":"收入记忆卷宗"}</button><button className="ghost-button" onClick={onCopy}>复制演示码</button>{!claimed&&<button className="ghost-button" onClick={onContinue}>跳过并继续</button>}</div>
   </section></div>;
 }
 
@@ -135,15 +135,15 @@ export function ArchiveProgress({memory,nextUnlock,completedChapters,collectible
     const requested=hasExplicit?(paidLineVisibility?.[item.id]||0):(unlockedDialogues.includes(item.id)?item.lockedLines.length:0);
     return Math.max(0,Math.min(item.lockedLines.length,Math.floor(requested)));
   };
-  return <section className="archive-progress" aria-labelledby="archive-progress-title"><div className="archive-progress-head"><span>持续档案</span><h3 id="archive-progress-title">记忆显影度 {memory}/100</h3><p>{nextUnlock?`再显影 ${nextUnlock.remaining} 点，开放「${nextUnlock.label}」。`:"完整记忆卷宗已经开放。"}</p></div>
+  return <section className="archive-progress" aria-labelledby="archive-progress-title"><div className="archive-progress-head"><span>持续档案</span><h3 id="archive-progress-title">记忆显影度 {memory}/100</h3><p>{nextUnlock?`再显影 ${nextUnlock.remaining} 点，开放「${nextUnlock.label}」。`:"完整卷宗已开放。"}</p></div>
     <div className="archive-progress-grid"><article><span>完成章节</span><strong>{completedChapters.length}/5</strong></article><article><span>纪念物</span><strong>{collectibles.length}</strong></article><article><span>演示礼包</span><strong>{rewards.length}/5</strong></article><article><span>隐藏对白</span><strong>{unlockedDialogues.length}/5</strong></article></div>
     {rewardItems.length>0&&<div className="archive-reward-ledger"><span>章节纪念卷 · 可随时补领</span>{rewardItems.map(item=><article key={item.id}><div><strong>{item.label}</strong><p>{item.prop}</p><code>{item.code}</code></div><div>{item.status==="revealed"&&onClaimReward?<button type="button" onClick={()=>onClaimReward(item.id)}>收入卷宗</button>:<em>已收入</em>}{onCopyReward&&<button type="button" onClick={()=>onCopyReward(item.code)}>复制演示码</button>}</div></article>)}</div>}
     {returnFragments.length>0&&<div className="return-fragment-ledger"><span>回访时收到的残片</span>{returnFragments.map((fragment,index)=><p key={index}>{fragment}</p>)}</div>}
-    <div className="archive-collections"><div><span>已收藏物件</span><p>{collectibles.length?collectibles.join(" · "):"照片、车票和旧书仍等着被发现。"}</p></div><div><span>未说出口的话</span>{paidItems.map(item=>{
+    <div className="archive-collections"><div><span>已收藏物件</span><p>{collectibles.length?collectibles.join(" · "):"照片、车票和旧书仍待发现。"}</p></div><div><span>未说出口的话</span>{paidItems.map(item=>{
       const encountered=encounteredDialogues?.includes(item.id)??true;if(!encountered)return <article key={item.id} aria-label={`${item.chapterLabel||"未来章节"}对白尚未抵达`}><strong>{item.chapterLabel||"未来章节"} · 尚未抵达</strong><p className="blurred">{unlockedDialogues.includes(item.id)?"已拥有 · 随剧情显影":"随剧情抵达后开放"}</p></article>;
       const visibleCount=visibleCountFor(item);const remaining=item.lockedLines.length-visibleCount;
       return <article key={item.id} aria-label={item.archiveTitle||item.title}><strong>{item.archiveTitle||item.title}</strong><p className={canPreview?"unlocked":"blurred"}>{canPreview?item.previewLine:"轮廓尚未显影"}</p>{visibleCount>0&&<div>{item.lockedLines.slice(0,visibleCount).map((line,index)=><p className="unlocked" key={index}>{line}</p>)}</div>}{remaining>0&&<p className="blurred">{canPreview?`剩余 ${remaining} 句仍未解锁`:"对白轮廓仍在暗处"}</p>}</article>;
     })}</div></div>
-    {onSpecialEpilogue&&<button className="ghost-button archive-epilogue-button" disabled={!specialEpilogueAvailable} onClick={onSpecialEpilogue}>{specialEpilogueAvailable?"打开特别尾声":"特别尾声 · 显影度达到 81 后开放"}</button>}
+    {onSpecialEpilogue&&<button className="ghost-button archive-epilogue-button" disabled={!specialEpilogueAvailable} onClick={onSpecialEpilogue}>{specialEpilogueAvailable?"打开特别尾声":"特别尾声 · 显影度 81 解锁"}</button>}
   </section>;
 }

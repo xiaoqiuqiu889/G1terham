@@ -11,7 +11,7 @@ test("reset control clears only Revolution Street data and returns to initial st
   assert.match(page, /startsWith\("revolution-street-"\)/);
   assert.match(page, /window\.location\.reload\(\)/);
   assert.match(page, /role="dialog" aria-modal="true" aria-labelledby="reset-dialog-title"/);
-  assert.match(page, /当前进度、选择、解锁内容和声音偏好都会清除/);
+  assert.match(page, /将清除进度、选择与解锁，恢复初始状态/);
 });
 
 test("reset remains reachable on title and during the story", () => {

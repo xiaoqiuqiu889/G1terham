@@ -60,12 +60,12 @@ test("late game keeps email and gaze as meaningful inputs", () => {
 });
 
 test("choice confirmation waits for the player after animation", () => {
-  assert.match(page, /reduced\?80:700/);
+  assert.match(page, /setTimeout\(\(\)=>\{setConfirmationReady\(true\);timerRef\.current=null\},700\)/);
   assert.match(page, /setConfirmationReady\(true\)/);
   assert.match(page, /带着这段记忆继续/);
   assert.match(page, /commitSelection/);
   const selectBlock = page.slice(page.indexOf("const selectOption="), page.indexOf("const commitSelection="));
-  assert.doesNotMatch(selectBlock, /setSceneIndex/);
+  assert.doesNotMatch(selectBlock, /setSceneIndex|reduced\?80|prefers-reduced-motion/);
 });
 
 test("first echo is readable and reunion observation is not duplicated", () => {

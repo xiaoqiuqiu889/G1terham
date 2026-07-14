@@ -279,3 +279,18 @@ button{touch-action:manipulation}
 }
 
 @media(max-width:380px){.title-content{padding-left:18px;padding-right:18px}.title-content h1{font-size:40px}.title-content .logline{font-size:14px}.top-actions button{width:42px;height:42px;min-width:42px;min-height:42px}.choices strong{font-size:14px}}
+
+/* A main choice is confirmed in a real modal. It never advances on a timer. */
+.choice-confirmation-backdrop{position:fixed;z-index:130;inset:0;display:grid;place-items:center;padding:24px;background:rgba(3,4,3,.76);backdrop-filter:blur(10px);animation:confirm-backdrop-in .18s ease both}
+.choice-confirmation-backdrop .choice-memory{position:relative;inset:auto;top:auto;right:auto;bottom:auto;left:auto;width:min(440px,100%);min-height:190px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:9px;padding:26px 28px;border:1px solid rgba(224,200,142,.72);border-left:3px solid var(--gold);background:linear-gradient(145deg,rgba(31,27,20,.98),rgba(11,12,10,.99));box-shadow:0 28px 90px rgba(0,0,0,.78)}
+.choice-confirmation-backdrop .choice-memory span{display:block;color:var(--gold);font:11px/1.2 "Microsoft YaHei",sans-serif;letter-spacing:.13em}.choice-confirmation-backdrop .choice-memory strong{display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;font-size:21px;line-height:1.45;font-weight:500}.choice-confirmation-backdrop .choice-memory small{display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;color:#bcb19e;font-size:14px;line-height:1.55}.choice-confirmation-backdrop .choice-memory button{width:100%;min-height:48px;margin-top:8px;font-size:14px;grid-column:auto;justify-self:auto}
+@keyframes confirm-backdrop-in{from{opacity:0}to{opacity:1}}
+
+@media(max-width:760px){
+  .choice-confirmation-backdrop{padding:max(70px,calc(env(safe-area-inset-top) + 58px)) 16px max(22px,env(safe-area-inset-bottom))}
+  .choice-confirmation-backdrop .choice-memory{width:100%;min-height:184px;padding:22px 20px}.choice-confirmation-backdrop .choice-memory strong{font-size:20px}.choice-confirmation-backdrop .choice-memory small{font-size:14px}
+  .scene.choice .dialogue-stack .dialogue:not(:last-child),.scene.resonance .dialogue-stack .dialogue:not(:last-child){display:none}
+  .dialogue,.chapter-card blockquote,.title-content .logline,.projector-repair small,.heartbeat-heading h3,.heartbeat-response strong,.discovery-interaction>p,.discovery-result p,.heartbeat-response p,.heartbeat-coda p,.optional-skip-note,.cinematic-epilogue,.archive-interpretation,.ending-fragments p,.resonance-coda p,.daily-result-lines p,.daily-step small,.reset-dialog>p:not(.kicker),.special-epilogue>div>p,.memory-notes p,.return-fragment-list p{overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+  .choices strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
+@media(prefers-reduced-motion:reduce){.choice-confirmation-backdrop{animation:none}}

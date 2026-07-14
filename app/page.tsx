@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AudioEngine } from "./audio-engine";
 import {
   AnswerRecord, Axis, choiceDiff, composeCinematicEpilogue, composeEndingFragments, determineEnding, EndingKey,
@@ -482,8 +483,9 @@ export default function Home(){
     const main=scene.choices?.find(option=>option.id===optionId);
     const resonance=scene.resonances?.find(option=>option.id===optionId);
     audioRef.current?.motif(main?.sound||resonance?.sound||"paper");
-    const reduced=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    timerRef.current=window.setTimeout(()=>{setConfirmationReady(true);timerRef.current=null},reduced?80:700);
+    // Reduced motion removes animation only. Keep the reading/anti-double-tap
+    // guard on every device so the original touch cannot activate Continue.
+    timerRef.current=window.setTimeout(()=>{setConfirmationReady(true);timerRef.current=null},700);
   };
 
   const commitSelection=()=>{
@@ -618,7 +620,7 @@ export default function Home(){
           :scene.kind==="resonance"&&scene.resonanceId==="email"?<EmailInteraction options={scene.resonances||[]} selected={selectedOption} ready={confirmationReady} previous={comparisonBase?.resonances.email} mode={mode} onSelect={selectOption} onCommit={commitSelection}/>
           :scene.kind==="resonance"&&scene.resonanceId==="gaze"?<GazeInteraction options={scene.resonances||[]} selected={selectedOption} ready={confirmationReady} previous={comparisonBase?.resonances.gaze} mode={mode} onFocus={setGazeFocus} onSelect={selectOption} onCommit={commitSelection}/>
           :scene.id==="campus"?<><ProjectorRepair step={projectorStep} onStep={advanceProjector}/>{projectorStep>=3&&<HeartbeatInteraction selected={heartbeatChoiceId} onSelect={chooseHeartbeat}/>} {projectorStep>=3&&heartbeatChoiceId&&<button className="continue-button" onClick={advance}>带着这次心动继续 <span>→</span></button>}</>
-          :<>{interactionsVisible&&skipPromptSceneId===scene.id&&incompleteOptionalDiscoveryIds.length>0&&<p className="optional-skip-note" role="status">还有 {incompleteOptionalDiscoveryIds.length} 段记忆没有显影。现在离开不会影响主线与结局；重访时仍可补回。</p>}<button className="continue-button" disabled={(scene.kind==="revisitEcho"&&!echoReady)||(interactionsVisible&&incompleteRequiredDiscoveryIds.length>0)} onClick={advance}>
+          :<>{interactionsVisible&&skipPromptSceneId===scene.id&&incompleteOptionalDiscoveryIds.length>0&&<p className="optional-skip-note" role="status">还有 {incompleteOptionalDiscoveryIds.length} 段未显影；可跳过，重访时再补。</p>}<button className="continue-button" disabled={(scene.kind==="revisitEcho"&&!echoReady)||(interactionsVisible&&incompleteRequiredDiscoveryIds.length>0)} onClick={advance}>
             {scene.kind==="montage"&&!montageComplete?"显示全部":scene.progressive&&beatIndex<sceneBody.length-1?"继续阅读":interactionsVisible&&incompleteRequiredDiscoveryIds.length?"先完成关键互动":scene.kind==="revisitEcho"&&!echoReady?"让回声停留片刻":interactionsVisible&&incompleteOptionalDiscoveryIds.length?(skipPromptSceneId===scene.id?"仍然离开 · 留待重访":"继续 · 可留待重访"):"继续"} <span>→</span>
           </button></>}
         </div>
@@ -641,7 +643,7 @@ function TitleScreen({savedGame,hasCompletedRun,profile,dailyFragment,todayRoute
   return <section className="title-screen"><Backdrop src="/art-v4/university-gate-autumn.png"/>
     <div className="title-content"><p className="kicker">互动叙事 · 记忆剪辑</p><h1>革命街<br/>没有尽头</h1>
       <p className="farsi" lang="fa" dir="rtl">خیابان انقلاب پایانی ندارد</p>
-      <p className="logline">她被处分、离开、结婚、重逢。结局已定；你决定这段往事怎样发生、如何被记住。</p>
+      <p className="logline">处分、离开、结婚与重逢都已发生。你决定他们怎样走到那里。</p>
       <div className="role-guide"><span>女生 <b>莱拉</b></span><i>×</i><span>男生 <b>阿拉什</b></span></div>
       {hasProgress&&<div className="title-progress-summary"><span>显影 <strong>{profile.progression.memoryExposure}/100</strong></span><span>章节 <strong>{profile.progression.completedChapterIds.length}/5</strong></span><span>礼包 <strong>{claimedRewardIds(profile).length}/5</strong></span></div>}
       {dailyFragment&&<button className="ghost-button large" onClick={onDailyFragment}><span>次日记忆残片</span><small>{dailyFragment}</small></button>}
@@ -668,14 +670,14 @@ function ResetDataDialog({onCancel,onConfirm}:{onCancel:()=>void;onConfirm:()=>v
   },[onCancel]);
   return <div className="reset-dialog-backdrop" role="dialog" aria-modal="true" aria-labelledby="reset-dialog-title" onClick={event=>{if(event.target===event.currentTarget)onCancel()}}><section className="reset-dialog">
     <p className="kicker">重新开始</p><h2 id="reset-dialog-title">重置全部游戏数据？</h2>
-    <p>当前进度、选择、解锁内容和声音偏好都会清除，游戏将回到第一次打开时的状态。</p>
+    <p>将清除进度、选择与解锁，恢复初始状态。</p>
     <div className="reset-dialog-actions"><button ref={cancelRef} className="ghost-button" onClick={onCancel}>取消</button><button className="reset-confirm-button" onClick={onConfirm}>确认重置</button></div>
   </section></div>;
 }
 function SpecialEpilogueOverlay({onClose}:{onClose:()=>void}){
   const closeRef=useRef<HTMLButtonElement|null>(null);
   useEffect(()=>{const previous=document.activeElement as HTMLElement|null;const overflow=document.body.style.overflow;document.body.style.overflow="hidden";closeRef.current?.focus();return()=>{document.body.style.overflow=overflow;previous?.focus()}},[]);
-  return <section className="special-epilogue" role="dialog" aria-modal="true" aria-labelledby="special-epilogue-title"><div><p className="kicker">完整记忆卷宗 · 额外片段</p><h2 id="special-epilogue-title">眼前的生活没有暂停</h2><p>过街以后，女生把航班时间发给卡姆兰。男生回拨玛丽亚姆，问今晚的云会不会遮住流星。刚才那段过去没有消失，他们各自的生活也仍在继续。</p><button ref={closeRef} className="start-button compact" onClick={onClose}>合上这页</button></div></section>;
+  return <section className="special-epilogue" role="dialog" aria-modal="true" aria-labelledby="special-epilogue-title"><div><p className="kicker">完整记忆卷宗 · 额外片段</p><h2 id="special-epilogue-title">眼前的生活没有暂停</h2><p>过街后，女生把航班发给卡姆兰；男生回拨玛丽亚姆，问今晚能否看见流星。</p><button ref={closeRef} className="start-button compact" onClick={onClose}>合上这页</button></div></section>;
 }
 
 function GameHeader({progress,sceneNumber,totalScenes,chapter,soundOn,onSound,onBack,canBack,onJournal,onReset}:{progress:number;sceneNumber:number;totalScenes:number;chapter:string;soundOn:boolean;onSound:()=>void;onBack:()=>void;canBack:boolean;onJournal:(e:React.MouseEvent<HTMLButtonElement>)=>void;onReset:()=>void}){
@@ -706,10 +708,17 @@ function SelectionPanel({scene,selected,ready,previous,mode,onSelect,onCommit}:{
 }
 
 function ConfirmationCard({label,action,confirmation,ready,inline=false,onCommit}:{label:string;action:string;confirmation:string;ready:boolean;inline?:boolean;onCommit:()=>void}){
-  return <div className={`choice-memory ${inline?"inline":""} ${ready?"ready":""}`} role="status" aria-live="polite">
-    <span>{label}</span><strong>{action}</strong><small>{confirmation}</small>
-    {ready&&<button onClick={onCommit}>带着这段记忆继续 <b>→</b></button>}
+  const continueRef=useRef<HTMLButtonElement|null>(null);
+  useEffect(()=>{if(ready&&!inline)continueRef.current?.focus({preventScroll:true})},[ready,inline]);
+  const card=<div className={`choice-memory ${inline?"inline":""} ${ready?"ready":""}`} role={inline?"status":"document"} aria-live="polite">
+    <span>{label}</span><strong id={inline?undefined:"choice-confirm-title"}>{action}</strong><small id={inline?undefined:"choice-confirm-copy"}>{confirmation}</small>
+    {ready&&<button ref={continueRef} onClick={onCommit}>带着这段记忆继续 <b>→</b></button>}
   </div>;
+  if(inline)return card;
+  return createPortal(
+    <div className="choice-confirmation-backdrop" role="dialog" aria-modal="true" aria-labelledby="choice-confirm-title" aria-describedby="choice-confirm-copy" onClick={event=>event.stopPropagation()} onPointerDown={event=>event.stopPropagation()}>{card}</div>,
+    document.body,
+  );
 }
 
 function resonanceAction(option?:ResonanceOption){
@@ -791,7 +800,7 @@ function ProjectorRepair({step,onStep}:{step:number;onStep:()=>void}){
   ];
   return <div className="projector-repair" role="group" aria-label="和男生一起修好放映机">
     <div className="projector-diagram" aria-hidden="true"><i className={step>0?"lit":""}/><b className={step>1?"turning":""}/><span className={step>2?"beam":""}/></div>
-    <div><p><span>两个人，三只手</span>{step===0?"男生腾不出第三只手。":actions[Math.min(step-1,2)].line}</p>{step<3?<button onClick={onStep}>{actions[step].label} <b>0{step+1}/03</b></button>:<small>画面重新出现。女生闻到热灯泡、灰尘和男生袖口的机油味；他没有立刻把手收回去。</small>}</div>
+    <div><p><span>两个人，三只手</span>{step===0?"男生腾不出第三只手。":actions[Math.min(step-1,2)].line}</p>{step<3?<button onClick={onStep}>{actions[step].label} <b>0{step+1}/03</b></button>:<small>画面亮起。机油味里，他们都没有先收回手。</small>}</div>
   </div>;
 }
 function HeartbeatInteraction({selected,onSelect}:{selected:HeartbeatId|null;onSelect:(id:HeartbeatId)=>void}){
@@ -799,7 +808,7 @@ function HeartbeatInteraction({selected,onSelect}:{selected:HeartbeatId|null;onS
   return <section className={`heartbeat-interaction ${selected?"is-selected":""}`} aria-labelledby="heartbeat-title">
     {!selected?<><div className="heartbeat-heading"><span>不计分 · 只改变他怎样记住她</span><h3 id="heartbeat-title">画面亮起前，女生想为男生做什么？</h3></div>
       <div className="heartbeat-options">{heartbeatMoments.map(item=><button key={item.id} onClick={()=>onSelect(item.id)}><i>{item.motif}</i><strong>{item.label}</strong><small>{item.action}</small></button>)}</div></>
-    :moment&&<div className="heartbeat-response" role="status" aria-live="polite"><span>男生记住了</span><strong>{moment.response}</strong><small>这不是好感分；它会在往后的雨夜与结尾里回来。</small></div>}
+    :moment&&<div className="heartbeat-response" role="status" aria-live="polite"><span>男生记住了</span><strong>{moment.response}</strong><small>这会在雨夜与结尾里回来。</small></div>}
   </section>;
 }
 
@@ -807,12 +816,12 @@ function DailyMemoryRoute({rotation,dateKey,previousRecord,milestones,onComplete
   const [stepIndex,setStepIndex]=useState(0);
   const [choices,setChoices]=useState<string[]>([]);
   const [complete,setComplete]=useState(false);
-  const hadRewardAtOpen=useRef(Boolean(previousRecord));
-  const initialPreviousRecord=useRef(previousRecord);
+  const [hadRewardAtOpen]=useState(()=>Boolean(previousRecord));
+  const [initialPreviousRecord]=useState(()=>previousRecord);
   const closeRef=useRef<HTMLButtonElement|null>(null);
   const step=rotation.steps[stepIndex];
   const lines=complete?composeDailyRouteLines(rotation,choices):[];
-  const comparisonChoices=previousRecord?.previousChoices||initialPreviousRecord.current?.choices;
+  const comparisonChoices=previousRecord?.previousChoices||initialPreviousRecord?.choices;
   const previousLines=comparisonChoices?composeDailyRouteLines(rotation,comparisonChoices):[];
   const choose=(id:string)=>{
     const next=[...choices,id];setChoices(next);
@@ -832,7 +841,7 @@ function DailyMemoryRoute({rotation,dateKey,previousRecord,milestones,onComplete
           <div className="daily-step"><span>{step.eyebrow}</span><h3>{step.prompt}</h3><div>{step.options.map(option=><button key={option.id} onClick={()=>choose(option.id)}><strong>{option.label}</strong><small>{option.line}</small></button>)}</div></div></>
         :<div className="daily-result"><span>今天的三格已经显影</span><div className="daily-result-lines">{lines.map((line,index)=><p key={line}><i>0{index+1}</i>{line}</p>)}</div>
           {previousRecord&&previousLines.some((line,index)=>line!==lines[index])&&<details><summary>比较上一次重剪</summary><div className="daily-compare"><section><span>上一次</span>{previousLines.map(line=><p key={line}>{line}</p>)}</section><b>→</b><section><span>这一次</span>{lines.map(line=><p key={line}>{line}</p>)}</section></div></details>}
-          <blockquote>{rotation.rewardFragment}</blockquote><p className="daily-reward-state">{hadRewardAtOpen.current?"今日奖励已领取；重剪只改变回声，不重复发放。":"今日首次完成：一段新的心动残片已收入记忆册。"}</p>
+          <blockquote>{rotation.rewardFragment}</blockquote><p className="daily-reward-state">{hadRewardAtOpen?"今日奖励已领取；重剪只改变回声，不重复发放。":"今日首次完成：一段新的心动残片已收入记忆册。"}</p>
           <div className="daily-milestones">{dailyMemoryMilestones.map(item=><span key={item.id} className={milestones.some(m=>m.id===item.id)?"unlocked":""}>{item.days}日 · {item.label}</span>)}</div>
           <div className="ending-actions"><button className="start-button compact" onClick={onClose}>收好今天的记忆</button><button className="ghost-button" onClick={replay}>再剪一次</button></div>
         </div>}
@@ -902,7 +911,7 @@ function EndingScreen({endingKey,answers,resonances,heartbeatChoiceId,mode,compa
     <p className="kicker">{isRevisitMode(mode)?"记忆重新剪好":"故事完成"}</p><h2>{ending.title}</h2><p className="cinematic-epilogue">{epilogue}</p>{heartbeatMoment&&<p className="heartbeat-coda"><span>{heartbeatMoment.motif}</span>{heartbeatMoment.endingFragment}</p>}
     <p className="unchanged-note">{unresolvedDialogueCount(profile)>0?`还有 ${unresolvedDialogueCount(profile)} 句对白没有显影；免费主线与结局已经完整。`:"五段隐藏对白都已收入记忆档案。"}</p>
     {profile.revisit.specialEpilogue!=="locked"&&!specialEpilogueOpen&&<button className="ghost-button" onClick={onSpecialEpilogue}>显影特别尾声</button>}
-    {specialEpilogueOpen&&<blockquote className="cinematic-epilogue">过街以后，女生把航班时间发给卡姆兰。男生回拨玛丽亚姆，问今晚的云会不会遮住流星。过去没有消失，眼前的生活也没有暂停。</blockquote>}
+    {specialEpilogueOpen&&<blockquote className="cinematic-epilogue">过街后，女生把航班发给卡姆兰；男生回拨玛丽亚姆，问今晚能否看见流星。</blockquote>}
     <details className="ending-archive"><summary>查看本轮剪辑 / 记忆档案</summary><div className="archive-inside">
       <div className="ending-seal"><span>本轮主调</span><strong>{ending.reveal}</strong></div><p className="archive-interpretation">{ending.body}</p><p className="run-memory-gain">本轮新显影 +{runMemoryGain}</p>
       <section className="ending-memory-section" aria-labelledby="main-memory-title"><h3 id="main-memory-title">三个主动作</h3><div className="ending-fragments">{mainFragments.map((fragment,index)=><p key={index}><span>0{index+1}</span>{fragment}</p>)}</div></section>

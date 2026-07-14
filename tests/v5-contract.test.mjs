@@ -44,7 +44,7 @@ test("README and design contract agree on locked endpoints and writable micro-ac
 });
 
 test("player-facing title uses the endpoint contract without development-version copy", () => {
-  assert.match(pageSource, /她被处分/);
+  assert.match(pageSource, /处分、离开、结婚与重逢都已发生/);
   assert.match(pageSource, /离开/);
   assert.match(pageSource, /结婚/);
   assert.match(pageSource, /重逢/);
@@ -182,7 +182,7 @@ test("all graduation-photo uses point back to one canonical asset", () => {
 
 test("first-run hierarchy stays cinematic and accessible", () => {
   assert.match(pageSource, /自动保存/);
-  assert.match(pageSource, /prefers-reduced-motion/);
+  assert.match(cssSource, /prefers-reduced-motion/);
   assert.match(pageSource, /aria-live|role="status"/);
   assert.match(cssSource, /min-width:\s*44px|min-height:\s*44px/);
   assert.match(cssSource, /@media\s*\([^)]*max-width/);
