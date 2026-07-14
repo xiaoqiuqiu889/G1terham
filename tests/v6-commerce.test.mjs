@@ -4,6 +4,10 @@ import test from "node:test";
 import ts from "typescript";
 
 const source = await readFile(new URL("../app/progression.ts", import.meta.url), "utf8");
+const [pageSource, uiSource] = await Promise.all([
+  readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+  readFile(new URL("../app/v6-ui.tsx", import.meta.url), "utf8"),
+]);
 const javascript = ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 },
 }).outputText;
@@ -194,4 +198,15 @@ test("remaining dialogue counts measure unrevealed lines rather than product own
   assert.equal(progression.unresolvedDialogueCount(chapter), allLockedLines - first.lockedLines.length);
   assert.equal(progression.buildChapterSummary(chapter, first.chapterId).lockedPaidCount, 0);
   assert.equal(progression.buildChapterSummary(chapter, first.chapterId).remainingDialogueLines, 0);
+});
+test("paid dialogue is a scene-native option rather than a forced emotional interruption", () => {
+  assert.match(uiSource, /可选镜头 · 不影响主线/);
+  assert.match(uiSource, /靠近这段沉默/);
+  assert.match(pageSource, /<PaidDialogueTeaser/);
+  const exitStart = pageSource.indexOf("const requestSceneExit");
+  const exitRoute = pageSource.slice(exitStart, pageSource.indexOf("const advance=()=>", exitStart));
+  assert.match(exitRoute, /markPaidSkipped\(markPaidImpression/);
+  assert.doesNotMatch(exitRoute, /setPendingPaidId/);
+  assert.match(pageSource, /scene\.revisitBody/);
+  assert.match(pageSource, /quietCinematicScene/);
 });

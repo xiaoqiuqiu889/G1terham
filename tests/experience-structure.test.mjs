@@ -46,7 +46,7 @@ test("three resonance actions are configured and do not carry score axes", () =>
 });
 
 test("required full-run operations stay within 35 to 40", () => {
-  const actions = logic.estimateMinimumActions(story.scenes) + 2; // 两次放映机协作替代一次普通继续
+  const actions = logic.estimateMinimumActions(story.scenes) + 2; // 第三次协作直接切入第一次选择，净增加两次操作
   assert.ok(actions >= 35 && actions <= 40, `estimated actions: ${actions}`);
   assert.ok(story.scenes.findIndex(scene => scene.choiceId === "choice-one") <= 3);
   assert.match(page, /ProjectorRepair/);
@@ -90,7 +90,7 @@ test("prop and character continuity is explicit", () => {
   assert.match(storySource, /六个月后获释/);
   assert.match(storySource, /父亲中风/);
   assert.match(storySource, /空荡的停车场/);
-  assert.match(storySource, /记录流星/);
+  assert.match(storySource, /记录流星|流星轨迹/);
   assert.doesNotMatch(storySource, /选择没有改变/);
 });
 
@@ -116,6 +116,29 @@ test("photo reveal, arrival message and marriage dialogue keep their chronology"
 
   assert.equal(story.scenes.find(scene => scene.id === "kamran")?.paidDialogueId, "paid-marriage-truth");
   assert.notEqual(story.scenes.find(scene => scene.id === "last-email")?.paidDialogueId, "paid-marriage-truth");
+});
+
+test("early intimacy and present-day relationships are built through concrete reciprocal actions", () => {
+  const firstChoiceCopy = story.scenes.find(scene => scene.id === "choice-one")?.body ?? [];
+  assert.ok(firstChoiceCopy.length >= 3);
+  assert.match(firstChoiceCopy.slice(0, -1).join(" "), /20:03/);
+  assert.match(firstChoiceCopy.slice(0, -1).join(" "), /电影票背面/);
+  assert.match(firstChoiceCopy.slice(0, -1).join(" "), /半颗石榴/);
+
+  const publicationCopy = story.scenes.find(scene => scene.id === "publication")?.body?.join(" ") ?? "";
+  assert.match(publicationCopy, /蓝铅笔.*小太阳/);
+  assert.doesNotMatch(publicationCopy, /六个月后获释|儿童图书馆/);
+  const disciplineCopy = story.scenes.find(scene => scene.id === "echo-two")?.body?.join(" ") ?? "";
+  assert.match(disciplineCopy, /儿童图书馆/);
+  assert.match(disciplineCopy, /蓝铅笔画的小太阳/);
+
+  const kamranCopy = story.scenes.find(scene => scene.id === "kamran")?.body?.join(" ") ?? "";
+  assert.match(kamranCopy, /接触印样/);
+  assert.match(kamranCopy, /请她替摄影投稿选一格/);
+  assert.match(kamranCopy, /当场划掉那张/);
+  const cityCopy = story.scenes.find(scene => scene.id === "two-cities")?.beats?.join(" ") ?? "";
+  assert.match(cityCopy, /玛丽亚姆.*误差范围.*坏传感器/);
+  assert.match(cityCopy, /阿拉什.*望远镜跟踪架.*流星轨迹/);
 });
 
 test("first-run journal hides axes while post-game unlocks explanations", () => {

@@ -12,7 +12,7 @@ import {
 } from "./story";
 import {
   ArchiveProgress, ChapterSettlementOverlay, DiscoveryInteraction, InteractionView,
-  MemoryHUD, PaidDialogueOverlay, PaidDialogueView,
+  MemoryHUD, PaidDialogueOverlay, PaidDialogueTeaser, PaidDialogueView,
 } from "./v6-ui";
 import {
   buildChapterSummary, chapterContractById, chapterMemoryGain, chapterRewardById, claimChapterReward,
@@ -159,7 +159,9 @@ export default function Home(){
   const incompleteOptionalDiscoveryIds=discoveryContracts.filter(item=>item.requirement==="optional"&&!runInteractionIds.includes(item.id)).map(item=>item.id);
   const sceneChapterId=(sceneInteractionContracts[0]?.chapterId||(scene?.chapter.startsWith("chapter")?scene.chapter:null)) as ChapterId|null;
   const memoryUnlock=nextMemoryUnlock(profile.progression.memoryExposure);
+  const quietCinematicScene=Boolean(scene&&(["echo-three","book","crossroads"].includes(scene.id)||scene.resonanceId==="gaze"));
   const activePaid= pendingPaidId?paidDialogueById[pendingPaidId]:null;
+  const scenePaidDialogue=scene?.paidDialogueId&&!resolvedPaidIds.includes(scene.paidDialogueId)?paidDialogueById[scene.paidDialogueId as PaidDialogueId]:null;
   const activePaidHasFullAccess=activePaid?hasFullDialogueAccess(profile.entitlements,activePaid):false;
   const activePaidLineCount=activePaid?visibleDialogueLineCount(profile.entitlements,activePaid):0;
   const activePurchaseOffers=useMemo(()=>activePaid?availablePurchaseOffers(profile,activePaid):[],[activePaid,profile]);
@@ -169,12 +171,13 @@ export default function Home(){
 
   const sceneBody=useMemo(()=>{
     if(!scene)return [];
-    const result=[...(scene.body||[])];
+    const authoredBody=isRevisitMode(mode)&&scene.revisitBody?.length?scene.revisitBody:scene.body;
+    const result=[...(authoredBody||[])];
     const echoChoice=echoChoiceByScene[scene.id];
     if(echoChoice&&answers[echoChoice])result.push(answers[echoChoice].nearEcho);
     result.push(...resolveFutureEchoes(futureEchoRoutes[scene.id],answers,resonances));
     return result;
-  },[scene,answers,resonances]);
+  },[scene,answers,resonances,mode]);
 
   const visibleBody=scene?.progressive?sceneBody.slice(0,Math.min(beatIndex+1,sceneBody.length)):sceneBody;
   const montageBeats=useMemo(()=>scene?.beats||[],[scene]);
@@ -361,8 +364,8 @@ export default function Home(){
     if(soundPreferred)void startSound();
   };
 
-  const moveNext=(withHistory=true)=>{
-    if(withHistory)setHistory(value=>[...value,snapshot()]);
+  const moveNext=(withHistory=true,historyEntry?:HistoryEntry)=>{
+    if(withHistory)setHistory(value=>[...value,historyEntry||snapshot()]);
     const next=sceneIndex+1;const nextScene=activeScenes[next];
     if(nextScene?.kind==="chapter"){
       audioRef.current?.cue("transition");trackEvent("next_chapter_start",{sceneId:nextScene.id,chapter:nextScene.chapter});
@@ -371,12 +374,26 @@ export default function Home(){
     setSceneIndex(next);setBeatIndex(0);setEchoReady(false);setGazeFocus(null);setSkipPromptSceneId(null);
   };
 
+  const advanceProjector=()=>{
+    const next=Math.min(3,projectorStep+1);
+    if(projectorStep===0)trackEvent("interaction_start",{interactionId:"projector-repair",sceneId:scene.id,kind:"projector"},"run:"+mode+":projector-repair");
+    setProjectorStep(next);audioRef.current?.texture("projector");audioRef.current?.motif(projectorStep===2?"photo":projectorStep===1?"paper":"ticket");
+    if(next<3)return;
+    completeRunInteraction("projector-repair");
+    moveNext(true,{...snapshot(),projectorStep:next,runInteractionIds:[...runInteractionsRef.current]});
+  };
   const openChapterSettlement=(chapterId:ChapterId)=>{
     const mutation=completeProfileChapter(profileRef.current,chapterId);commitProfile(mutation.profile);
     setPendingChapterId(chapterId);
     trackEvent("chapter_complete",{chapterId,memory:mutation.profile.progression.memoryExposure,newCompletion:mutation.changed},"run:"+mode+":"+chapterId);
     trackEvent("chapter_reward_reveal",{chapterId,rewardId:chapterRewardById[chapterId].sourceSceneId},"run:"+mode+":"+chapterId);
     if(mutation.memoryGained)trackEvent("memory_value_change",{source:"chapter:"+chapterId,delta:mutation.memoryGained,value:mutation.profile.progression.memoryExposure});
+  };
+
+  const openScenePaidDialogue=()=>{
+    if(!scenePaidDialogue)return;
+    const updated=markPaidImpression(profileRef.current,scenePaidDialogue.id);commitProfile(updated);setPendingPaidId(scenePaidDialogue.id);
+    trackEvent("paid_dialogue_impression",{dialogueId:scenePaidDialogue.id,chapter:scenePaidDialogue.chapterId,source:"scene_teaser"},"run:"+mode+":"+scenePaidDialogue.id);
   };
 
   const continueAfterPaid=(paidId:PaidDialogueId,completed:boolean)=>{
@@ -392,10 +409,10 @@ export default function Home(){
     if(incompleteOptionalDiscoveryIds.length&&skipPromptSceneId!==scene.id){setSkipPromptSceneId(scene.id);return}
     if(scene.paidDialogueId&&!resolvedPaidIds.includes(scene.paidDialogueId)){
       const paid=paidDialogueById[scene.paidDialogueId as PaidDialogueId];if(paid){
-        const updated=markPaidImpression(profileRef.current,paid.id);commitProfile(updated);setPendingPaidId(paid.id);
-        trackEvent("paid_dialogue_impression",{dialogueId:paid.id,chapter:paid.chapterId},"run:"+mode+":"+paid.id);
-
-        return;
+        const updated=markPaidSkipped(markPaidImpression(profileRef.current,paid.id),paid.id);commitProfile(updated);
+        setResolvedPaidIds(value=>Array.from(new Set([...value,paid.id])));
+        trackEvent("paid_dialogue_impression",{dialogueId:paid.id,chapter:paid.chapterId,source:"scene_teaser"},"run:"+mode+":"+paid.id);
+        trackEvent("paid_dialogue_skip",{dialogueId:paid.id,chapter:paid.chapterId,source:"continued_mainline"});
       }
     }
     if(scene.chapterEnd&&!settledChapterIds.includes(scene.chapterEnd)){openChapterSettlement(scene.chapterEnd);return}
@@ -405,7 +422,7 @@ export default function Home(){
   const advance=()=>{
     if(selectedOption||journalOpen||pendingPaidId||pendingChapterId||specialEpilogueOpen||finished)return;
     if(scene.kind==="choice"||scene.kind==="resonance")return;
-    if(scene.id==="campus"&&projectorStep<2)return;
+    if(scene.id==="campus"&&projectorStep<3)return;
     if(scene.kind==="revisitEcho"&&!echoReady)return;
     if(scene.kind==="montage"){
       if(!montageComplete){setBeatIndex(Math.max(0,montageBeats.length-1));return}
@@ -548,19 +565,20 @@ export default function Home(){
           :scene.kind==="revisitEcho"?<RevisitEcho current={answers[scene.choiceId||""]} previous={comparisonBase?.answers[scene.choiceId||""]} ready={echoReady}/>
           :<div className="dialogue-stack">{visibleBody.map((paragraph,index)=><p className="dialogue" key={index}>{paragraph}</p>)}</div>}
           {interactionsVisible&&discoveryViews.map(interaction=><DiscoveryInteraction key={interaction.id} interaction={interaction} completed={runInteractionIds.includes(interaction.id)} onStart={id=>trackEvent("interaction_start",{interactionId:id,sceneId:scene.id,kind:interaction.kind},"run:"+mode+":"+id)} onComplete={completeRunInteraction}/>)}
+          {interactionsVisible&&scenePaidDialogue&&incompleteRequiredDiscoveryIds.length===0&&<PaidDialogueTeaser dialogue={dialogueView(scenePaidDialogue.id)} onOpen={openScenePaidDialogue}/>}
           {scene.kind==="choice"?
             <SelectionPanel scene={scene} selected={selectedOption} ready={confirmationReady} previous={comparisonBase?.answers[scene.choiceId||""]} mode={mode} onSelect={selectOption} onCommit={commitSelection}/>
           :scene.kind==="resonance"&&scene.resonanceId==="photo"?<PhotoInteraction options={scene.resonances||[]} selected={selectedOption} ready={confirmationReady} previous={comparisonBase?.resonances.photo} mode={mode} onSelect={selectOption} onCommit={commitSelection}/>
           :scene.kind==="resonance"&&scene.resonanceId==="email"?<EmailInteraction options={scene.resonances||[]} selected={selectedOption} ready={confirmationReady} previous={comparisonBase?.resonances.email} mode={mode} onSelect={selectOption} onCommit={commitSelection}/>
           :scene.kind==="resonance"&&scene.resonanceId==="gaze"?<GazeInteraction options={scene.resonances||[]} selected={selectedOption} ready={confirmationReady} previous={comparisonBase?.resonances.gaze} mode={mode} onFocus={setGazeFocus} onSelect={selectOption} onCommit={commitSelection}/>
-          :scene.id==="campus"?<><ProjectorRepair step={projectorStep} onStep={()=>{const next=Math.min(2,projectorStep+1);if(projectorStep===0)trackEvent("interaction_start",{interactionId:"projector-repair",sceneId:scene.id,kind:"projector"},"run:"+mode+":projector-repair");setProjectorStep(next);if(next>=2)completeRunInteraction("projector-repair");audioRef.current?.texture("projector");audioRef.current?.motif(projectorStep===1?"photo":"paper")}}/>{projectorStep>=2&&<button className="continue-button" onClick={advance}>让画面继续 <span>→</span></button>}</>
+          :scene.id==="campus"?<><ProjectorRepair step={projectorStep} onStep={advanceProjector}/>{projectorStep>=3&&<button className="continue-button" onClick={advance}>让画面继续 <span>→</span></button>}</>
           :<>{interactionsVisible&&skipPromptSceneId===scene.id&&incompleteOptionalDiscoveryIds.length>0&&<p className="optional-skip-note" role="status">还有 {incompleteOptionalDiscoveryIds.length} 段记忆没有显影。现在离开不会影响主线与结局；重访时仍可补回。</p>}<button className="continue-button" disabled={(scene.kind==="revisitEcho"&&!echoReady)||(interactionsVisible&&incompleteRequiredDiscoveryIds.length>0)} onClick={advance}>
             {scene.kind==="montage"&&!montageComplete?"显示全部":scene.progressive&&beatIndex<sceneBody.length-1?"继续阅读":interactionsVisible&&incompleteRequiredDiscoveryIds.length?"先完成关键互动":scene.kind==="revisitEcho"&&!echoReady?"让回声停留片刻":interactionsVisible&&incompleteOptionalDiscoveryIds.length?(skipPromptSceneId===scene.id?"仍然离开 · 留待重访":"继续 · 可留待重访"):"继续"} <span>→</span>
           </button></>}
         </div>
         <div className="progress-track" role="progressbar" aria-label="故事进度" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><div style={{width:`${progress}%`}}/></div>
       </section>}
-      {started&&!finished&&<MemoryHUD memory={profile.progression.memoryExposure} chapterGain={sceneChapterId?chapterMemoryGain(profile,sceneChapterId):0} nextUnlock={memoryUnlock} collectibles={profile.progression.collectibleIds.length} unlockedDialogues={paidDialogues.filter(item=>hasDialogueAccess(profile.entitlements,item)).length} rewards={claimedRewardIds(profile).length}/>}
+      {started&&!finished&&!quietCinematicScene&&<MemoryHUD memory={profile.progression.memoryExposure} chapterGain={sceneChapterId?chapterMemoryGain(profile,sceneChapterId):0} nextUnlock={memoryUnlock} collectibles={profile.progression.collectibleIds.length} unlockedDialogues={paidDialogues.filter(item=>hasDialogueAccess(profile.entitlements,item)).length} rewards={claimedRewardIds(profile).length}/>}
       {activePaid&&<PaidDialogueOverlay dialogue={dialogueView(activePaid.id)} unlockedLineCount={activePaidLineCount} fullAccess={activePaidHasFullAccess} offers={activeOfferViews} onUnlock={purchaseActiveDialogue} onSkip={()=>continueAfterPaid(activePaid.id,false)} onContinue={()=>continueAfterPaid(activePaid.id,true)}/>}
       {pendingChapterId&&settlementSummary&&<ChapterSettlementOverlay chapterLabel={chapterContractById[pendingChapterId].label} memoryEarned={settlementSummary.memoryEarned} collectibleCount={settlementSummary.collectibleIds.length} missedDialogueCount={settlementSummary.lockedPaidCount} reward={chapterRewardById[pendingChapterId]} chapterIndex={Number(pendingChapterId.replace("chapter",""))} collectedRewardCount={claimedRewardIds(profile).length} claimed={profile.progression.chapterRewards[pendingChapterId]==="claimed"} nextTeaser={settlementSummary.nextTeaser} onClaim={claimSettlementReward} onCopy={copySettlementReward} onContinue={continueSettlement}/>}
       {journalOpen&&<Journal answers={answers} resonances={resonances} unlocked={unlocked} profile={profile} onSpecialEpilogue={openSpecialEpilogue} onChapterRevisit={startChapterRevisit} onClose={()=>setJournalOpen(false)} closeRef={journalCloseRef}/>}
@@ -711,11 +729,12 @@ function GazeInteraction({options,selected,ready,previous,mode,onFocus,onSelect,
 function ProjectorRepair({step,onStep}:{step:number;onStep:()=>void}){
   const actions=[
     {label:"扶住片门",line:"莱拉用指尖稳住发热的金属框。"},
-    {label:"收紧胶片，点亮灯泡",line:"“别拉太快。”阿拉什把她的手移到齿轮外侧。"},
+    {label:"把胶片压进齿轮",line:"“别拉太快。”阿拉什把她的手移到齿轮外侧。"},
+    {label:"替他遮住漏光",line:"画面亮起以前，他们的指尖在齿轮外碰了一下。"},
   ];
   return <div className="projector-repair" role="group" aria-label="和阿拉什一起修好放映机">
-    <div className="projector-diagram" aria-hidden="true"><i className={step>0?"lit":""}/><b className={step>1?"turning":""}/><span className={step>1?"beam":""}/></div>
-    <div><p><span>放映机修理</span>{step===0?"阿拉什腾不出第三只手。":actions[Math.min(step-1,1)].line}</p>{step<2?<button onClick={onStep}>{actions[step].label} <b>0{step+1}/02</b></button>:<small>画面重新出现。莱拉闻到热灯泡、灰尘和阿拉什袖口的机油味。</small>}</div>
+    <div className="projector-diagram" aria-hidden="true"><i className={step>0?"lit":""}/><b className={step>1?"turning":""}/><span className={step>2?"beam":""}/></div>
+    <div><p><span>两个人，三只手</span>{step===0?"阿拉什腾不出第三只手。":actions[Math.min(step-1,2)].line}</p>{step<3?<button onClick={onStep}>{actions[step].label} <b>0{step+1}/03</b></button>:<small>画面重新出现。莱拉闻到热灯泡、灰尘和阿拉什袖口的机油味；他没有立刻把手收回去。</small>}</div>
   </div>;
 }
 function Montage({beats,index}:{beats:string[];index:number}){

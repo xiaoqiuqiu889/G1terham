@@ -64,6 +64,12 @@ export function DiscoveryInteraction({interaction,completed,onStart,onComplete}:
   </section>;
 }
 
+export function PaidDialogueTeaser({dialogue,onOpen}:{dialogue:PaidDialogueView;onOpen:()=>void}) {
+  return <aside className="paid-dialogue-teaser" aria-label={`可选隐藏对白：${dialogue.title}`}>
+    <span>可选镜头 · 不影响主线</span><div><strong>{dialogue.title}</strong><p>{dialogue.previewLine}</p></div>
+    <button type="button" onClick={onOpen}>靠近这段沉默 <b>→</b></button>
+  </aside>;
+}
 export function PaidDialogueOverlay({dialogue,unlockedLineCount,fullAccess,hasAccess=false,offers,offer,offerLabel,offerPrice,creditText,onUnlock,onSkip,onContinue}:{dialogue:PaidDialogueView;unlockedLineCount?:number;fullAccess?:boolean;hasAccess?:boolean;offers?:PaidDialogueOffer[];offer?:PaidDialogueOffer;offerLabel?:string;offerPrice?:string;creditText?:string;onUnlock?:(productId?:string)=>void;onSkip?:()=>void;onContinue:()=>void}) {
   const dialogRef=useRef<HTMLElement|null>(null);
   const primaryRef=useRef<HTMLButtonElement|null>(null);
