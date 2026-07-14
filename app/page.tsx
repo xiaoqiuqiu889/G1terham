@@ -142,6 +142,7 @@ export default function Home(){
   const [runStartMemory,setRunStartMemory]=useState(0);
   const [specialEpilogueOpen,setSpecialEpilogueOpen]=useState(false);
   const [skipPromptSceneId,setSkipPromptSceneId]=useState<string|null>(null);
+  const [resetConfirmOpen,setResetConfirmOpen]=useState(false);
   const profileRef=useRef(profile);
   const runInteractionsRef=useRef(runInteractionIds);
   const sceneEventRef=useRef("");
@@ -195,6 +196,7 @@ export default function Home(){
   },[scene,answers,resonances,mode,heartbeatMoment]);
 
   const visibleBody=scene?.progressive?sceneBody.slice(0,Math.min(beatIndex+1,sceneBody.length)):sceneBody;
+  const displayBody=scene?.kind==="choice"&&visibleBody.length>2?visibleBody.slice(-2):visibleBody;
   const montageBeats=useMemo(()=>scene?.beats||[],[scene]);
   const montageComplete=scene?.kind==="montage"&&beatIndex>=montageBeats.length-1;
   const interactionsVisible=(scene?.kind!=="montage"||montageComplete)&&(!scene?.progressive||beatIndex>=sceneBody.length-1);
@@ -363,6 +365,13 @@ export default function Home(){
     localStorage.removeItem(SAVE_KEY);
     if(nextMode!=="full")trackEvent("revisit_start",{mode:nextMode,previousEnding:base?.ending||null});
     if(enableSound)void startSound();
+  };
+  const confirmDataReset=()=>{
+    audioRef.current?.stop();audioRef.current=null;
+    for(let index=localStorage.length-1;index>=0;index--){
+      const key=localStorage.key(index);if(key?.startsWith("revolution-street-"))localStorage.removeItem(key);
+    }
+    window.location.reload();
   };
   const startFresh=(enableSound=false)=>resetRun("full",enableSound);
   const startRevisit=(kind:"quick"|"full")=>{
@@ -560,7 +569,9 @@ export default function Home(){
 
   useEffect(()=>{
     const onKey=(event:KeyboardEvent)=>{
+      if(resetConfirmOpen&&event.key==="Escape"){setResetConfirmOpen(false);return}
       if(specialEpilogueOpen&&event.key==="Escape"){setSpecialEpilogueOpen(false);return}
+      if(resetConfirmOpen)return;
       if(journalOpen&&event.key==="Escape"){setJournalOpen(false);return}
       if(journalOpen||specialEpilogueOpen||selectedOption)return;
       if(event.key.toLowerCase()==="j"&&started&&!finished){
@@ -576,7 +587,7 @@ export default function Home(){
 
   return <main className="game-shell">
     <div className="cinema-frame">
-      {!started?<TitleScreen savedGame={savedGame} hasCompletedRun={Boolean(lastRun)} profile={profile} dailyFragment={dailyFragment} todayRouteRecord={todayRouteRecord} soundPreferred={soundPreferred} onDailyFragment={acknowledgeDailyFragment} onDailyRoute={()=>{setDailyRouteKey(value=>value+1);setDailyRouteOpen(true)}} onContinue={continueSaved} onFresh={startFresh} onRevisit={()=>startRevisit("quick")}/>
+      {!started?<TitleScreen savedGame={savedGame} hasCompletedRun={Boolean(lastRun)} profile={profile} dailyFragment={dailyFragment} todayRouteRecord={todayRouteRecord} soundPreferred={soundPreferred} onDailyFragment={acknowledgeDailyFragment} onDailyRoute={()=>{setDailyRouteKey(value=>value+1);setDailyRouteOpen(true)}} onContinue={continueSaved} onFresh={startFresh} onRevisit={()=>startRevisit("quick")} onReset={()=>setResetConfirmOpen(true)}/>
       :finished&&!endingRevealed?<section className="ending-ritual">
         <Backdrop src="/art-v5/istanbul-crossroads-aged.png"/>
         <div className="ritual-content"><span className="archive-mark">记忆归档</span><div className="ritual-line"/>
@@ -584,7 +595,7 @@ export default function Home(){
           <button className="start-button" onClick={()=>{setEndingRevealed(true);audioRef.current?.cue("ending")}}>翻开最后一页 <span>→</span></button>
         </div>
       </section>
-      :finished?<EndingScreen endingKey={endingKey} answers={answers} resonances={resonances} heartbeatChoiceId={heartbeatChoiceId} mode={mode} comparisonBase={comparisonBase} profile={profile} runMemoryGain={Math.max(0,profile.progression.memoryExposure-runStartMemory)} specialEpilogueOpen={specialEpilogueOpen} onSpecialEpilogue={openSpecialEpilogue} onChapterRevisit={startChapterRevisit} onFresh={startFresh} onRevisit={startRevisit} onDailyRoute={()=>{setDailyRouteKey(value=>value+1);setDailyRouteOpen(true)}} onJournal={openJournal}/>
+      :finished?<EndingScreen endingKey={endingKey} answers={answers} resonances={resonances} heartbeatChoiceId={heartbeatChoiceId} mode={mode} comparisonBase={comparisonBase} profile={profile} runMemoryGain={Math.max(0,profile.progression.memoryExposure-runStartMemory)} specialEpilogueOpen={specialEpilogueOpen} onSpecialEpilogue={openSpecialEpilogue} onChapterRevisit={startChapterRevisit} onFresh={startFresh} onRevisit={startRevisit} onDailyRoute={()=>{setDailyRouteKey(value=>value+1);setDailyRouteOpen(true)}} onJournal={openJournal} onReset={()=>setResetConfirmOpen(true)}/>
       :scene.kind==="chapter"?<section className="chapter-screen" key={scene.id} onClick={handleSceneClick}>
         <Backdrop src={scene.art}/><div className="chapter-card"><p>{scene.year}</p><span>{scene.chapterLabel}</span><h2>{scene.place}</h2><div className="chapter-rule"/><blockquote>{scene.body?.[0]}</blockquote><button className="continue-button" onClick={advance}>进入本章 <span>→</span></button></div>
       </section>
@@ -592,14 +603,14 @@ export default function Home(){
         <Backdrop src={sceneArt} focus={scene.resonanceId==="gaze"&&gazeFocus?`gaze-${gazeFocus}`:scene.artFocus}/><ObjectShot type={scene.object}/>
         {scene.resonanceId==="gaze"&&<GazeVisualLayer options={scene.resonances||[]} selected={selectedOption} focus={gazeFocus} onFocus={setGazeFocus} onSelect={selectOption}/>}
         {interactionsVisible&&scenePaidDialogue&&incompleteRequiredDiscoveryIds.length===0&&<PaidObjectHotspot dialogue={dialogueView(scenePaidDialogue.id)} onOpen={openScenePaidDialogue}/>}
-        <GameHeader progress={progress} sceneNumber={sceneIndex+1} totalScenes={activeScenes.length} chapter={scene.chapterLabel} soundOn={soundOn} onSound={toggleSound} onBack={goBack} canBack={history.length>0&&!selectedOption&&!pendingPaidId&&!pendingChapterId} onJournal={openJournal}/>
+        <GameHeader progress={progress} sceneNumber={sceneIndex+1} totalScenes={activeScenes.length} chapter={scene.chapterLabel} soundOn={soundOn} onSound={toggleSound} onBack={goBack} canBack={history.length>0&&!selectedOption&&!pendingPaidId&&!pendingChapterId} onJournal={openJournal} onReset={()=>setResetConfirmOpen(true)}/>
         <div className="scene-copy">
           <div className="location-row"><span>{scene.chapterLabel}</span><span className="location">{scene.place}</span></div>
           {scene.kind==="echo"&&echoRecord&&<div className="echo-signature"><span>回声抵达</span><strong>{echoRecord.motif}</strong></div>}
           {scene.speaker&&<p className="speaker">{scene.speaker}</p>}
           {scene.kind==="montage"?<Montage beats={montageBeats} index={beatIndex}/>
           :scene.kind==="revisitEcho"?<RevisitEcho current={answers[scene.choiceId||""]} previous={comparisonBase?.answers[scene.choiceId||""]} ready={echoReady}/>
-          :<div className="dialogue-stack">{visibleBody.map((paragraph,index)=><p className="dialogue" key={index}>{paragraph}</p>)}</div>}
+          :<div className="dialogue-stack">{displayBody.map((paragraph,index)=><p className="dialogue" key={index}>{paragraph}</p>)}</div>}
           {interactionsVisible&&discoveryViews.map(interaction=><DiscoveryInteraction key={interaction.id} interaction={interaction} completed={runInteractionIds.includes(interaction.id)} onStart={id=>trackEvent("interaction_start",{interactionId:id,sceneId:scene.id,kind:interaction.kind},"run:"+mode+":"+id)} onComplete={completeRunInteraction}/>)}
           {scene.kind==="choice"?
             <SelectionPanel scene={scene} selected={selectedOption} ready={confirmationReady} previous={comparisonBase?.answers[scene.choiceId||""]} mode={mode} onSelect={selectOption} onCommit={commitSelection}/>
@@ -619,18 +630,20 @@ export default function Home(){
       {journalOpen&&<Journal answers={answers} resonances={resonances} heartbeatChoiceId={heartbeatChoiceId} unlocked={unlocked} profile={profile} onClaimReward={chapterId=>claimReward(chapterId,"archive")} onCopyReward={copyRewardCode} onSpecialEpilogue={openSpecialEpilogue} onChapterRevisit={startChapterRevisit} onClose={()=>setJournalOpen(false)} closeRef={journalCloseRef}/>}
       {specialEpilogueOpen&&!finished&&<SpecialEpilogueOverlay onClose={()=>setSpecialEpilogueOpen(false)}/>}
       {dailyRouteOpen&&<DailyMemoryRoute key={dailyRouteKey} rotation={todayRotation} dateKey={todayKey} previousRecord={todayRouteRecord} milestones={unlockedDailyMilestones(profile.romance.dailyMemoryRecords)} onComplete={finishDailyRoute} onClose={()=>setDailyRouteOpen(false)}/>}
+      {resetConfirmOpen&&<ResetDataDialog onCancel={()=>setResetConfirmOpen(false)} onConfirm={confirmDataReset}/>}
     </div>
     <p className="outside-hint">点击画面 / 空格继续 · ← 返回上一幕 · 触屏可完成全部操作</p>
   </main>;
 }
 
-function TitleScreen({savedGame,hasCompletedRun,profile,dailyFragment,todayRouteRecord,soundPreferred,onDailyFragment,onDailyRoute,onContinue,onFresh,onRevisit}:{savedGame:SaveData|null;hasCompletedRun:boolean;profile:ProfileStateV6;dailyFragment:string|null;todayRouteRecord?:DailyMemoryRecord;soundPreferred:boolean;onDailyFragment:()=>void;onDailyRoute:()=>void;onContinue:()=>void;onFresh:(sound:boolean)=>void;onRevisit:()=>void}){
+function TitleScreen({savedGame,hasCompletedRun,profile,dailyFragment,todayRouteRecord,soundPreferred,onDailyFragment,onDailyRoute,onContinue,onFresh,onRevisit,onReset}:{savedGame:SaveData|null;hasCompletedRun:boolean;profile:ProfileStateV6;dailyFragment:string|null;todayRouteRecord?:DailyMemoryRecord;soundPreferred:boolean;onDailyFragment:()=>void;onDailyRoute:()=>void;onContinue:()=>void;onFresh:(sound:boolean)=>void;onRevisit:()=>void;onReset:()=>void}){
+  const hasProgress=profile.progression.memoryExposure>0||profile.progression.completedChapterIds.length>0||claimedRewardIds(profile).length>0;
   return <section className="title-screen"><Backdrop src="/art-v4/university-gate-autumn.png"/>
     <div className="title-content"><p className="kicker">互动叙事 · 记忆剪辑</p><h1>革命街<br/>没有尽头</h1>
       <p className="farsi" lang="fa" dir="rtl">خیابان انقلاب پایانی ندارد</p>
-      <p className="logline">女生被处分、离开、结婚与重逢已经发生。你不能改写这些端点，但能决定她与男生怎样走到那里，以及这段爱情如何被记住。</p>
+      <p className="logline">她被处分、离开、结婚、重逢。结局已定；你决定这段往事怎样发生、如何被记住。</p>
       <div className="role-guide"><span>女生 <b>莱拉</b></span><i>×</i><span>男生 <b>阿拉什</b></span></div>
-      <div className="title-progress-summary"><span>显影 <strong>{profile.progression.memoryExposure}/100</strong></span><span>章节 <strong>{profile.progression.completedChapterIds.length}/5</strong></span><span>礼包 <strong>{claimedRewardIds(profile).length}/5</strong></span></div>
+      {hasProgress&&<div className="title-progress-summary"><span>显影 <strong>{profile.progression.memoryExposure}/100</strong></span><span>章节 <strong>{profile.progression.completedChapterIds.length}/5</strong></span><span>礼包 <strong>{claimedRewardIds(profile).length}/5</strong></span></div>}
       {dailyFragment&&<button className="ghost-button large" onClick={onDailyFragment}><span>次日记忆残片</span><small>{dailyFragment}</small></button>}
       <div className={`title-actions ${savedGame?"has-resume":""}`}>
         {savedGame&&<button className="start-button resume-button" onClick={onContinue}><span>继续上次记忆</span><span>→</span><small>{formatSavedTime(savedGame.savedAt)}</small></button>}
@@ -638,23 +651,39 @@ function TitleScreen({savedGame,hasCompletedRun,profile,dailyFragment,todayRoute
         <button className="ghost-button large" onClick={()=>onFresh(false)}>静音进入</button>
         {hasCompletedRun&&<button className="ghost-button large daily-route-button" onClick={onDailyRoute}><span>{todayRouteRecord?"再次重剪今日记忆":"今日记忆路线"}</span><small>{todayRouteRecord?`已显影 ${todayRouteRecord.plays} 次 · 重剪不重复领取`:"三步 · 约 1–2 分钟"}</small></button>}
         {hasCompletedRun&&<button className="ghost-button large" onClick={onRevisit}>重访关键记忆</button>}
+        <button className="ghost-button large title-reset-button" onClick={onReset}>重置游戏数据</button>
       </div>
-      <div className="title-meta"><span>完整体验 6–8 分钟</span><span>自动保存</span><span>{soundPreferred?"上次使用有声模式":"建议佩戴耳机"}</span></div>
+      <div className="title-meta"><span>约 6–8 分钟</span><span>自动保存</span>{soundPreferred&&<span>上次使用有声模式</span>}</div>
     </div>
   </section>;
 }
 
+function ResetDataDialog({onCancel,onConfirm}:{onCancel:()=>void;onConfirm:()=>void}){
+  const cancelRef=useRef<HTMLButtonElement|null>(null);
+  useEffect(()=>{
+    const previous=document.activeElement as HTMLElement|null;const overflow=document.body.style.overflow;
+    document.body.style.overflow="hidden";window.setTimeout(()=>cancelRef.current?.focus(),0);
+    const onKey=(event:KeyboardEvent)=>{if(event.key==="Escape")onCancel()};window.addEventListener("keydown",onKey);
+    return()=>{window.removeEventListener("keydown",onKey);document.body.style.overflow=overflow;previous?.focus()};
+  },[onCancel]);
+  return <div className="reset-dialog-backdrop" role="dialog" aria-modal="true" aria-labelledby="reset-dialog-title" onClick={event=>{if(event.target===event.currentTarget)onCancel()}}><section className="reset-dialog">
+    <p className="kicker">重新开始</p><h2 id="reset-dialog-title">重置全部游戏数据？</h2>
+    <p>当前进度、选择、解锁内容和声音偏好都会清除，游戏将回到第一次打开时的状态。</p>
+    <div className="reset-dialog-actions"><button ref={cancelRef} className="ghost-button" onClick={onCancel}>取消</button><button className="reset-confirm-button" onClick={onConfirm}>确认重置</button></div>
+  </section></div>;
+}
 function SpecialEpilogueOverlay({onClose}:{onClose:()=>void}){
   const closeRef=useRef<HTMLButtonElement|null>(null);
   useEffect(()=>{const previous=document.activeElement as HTMLElement|null;const overflow=document.body.style.overflow;document.body.style.overflow="hidden";closeRef.current?.focus();return()=>{document.body.style.overflow=overflow;previous?.focus()}},[]);
   return <section className="special-epilogue" role="dialog" aria-modal="true" aria-labelledby="special-epilogue-title"><div><p className="kicker">完整记忆卷宗 · 额外片段</p><h2 id="special-epilogue-title">眼前的生活没有暂停</h2><p>过街以后，女生把航班时间发给卡姆兰。男生回拨玛丽亚姆，问今晚的云会不会遮住流星。刚才那段过去没有消失，他们各自的生活也仍在继续。</p><button ref={closeRef} className="start-button compact" onClick={onClose}>合上这页</button></div></section>;
 }
 
-function GameHeader({progress,sceneNumber,totalScenes,chapter,soundOn,onSound,onBack,canBack,onJournal}:{progress:number;sceneNumber:number;totalScenes:number;chapter:string;soundOn:boolean;onSound:()=>void;onBack:()=>void;canBack:boolean;onJournal:(e:React.MouseEvent<HTMLButtonElement>)=>void}){
+function GameHeader({progress,sceneNumber,totalScenes,chapter,soundOn,onSound,onBack,canBack,onJournal,onReset}:{progress:number;sceneNumber:number;totalScenes:number;chapter:string;soundOn:boolean;onSound:()=>void;onBack:()=>void;canBack:boolean;onJournal:(e:React.MouseEvent<HTMLButtonElement>)=>void;onReset:()=>void}){
   return <header className="topbar"><div className="mini-title"><span>{chapter}</span><small className="visually-hidden">第 {sceneNumber} 幕，共 {totalScenes} 幕</small><i className="visually-hidden">故事进度 {progress}%</i></div><div className="top-actions">
     <button onClick={onBack} disabled={!canBack} aria-label="回到上一幕">← <span>上一幕</span></button>
     <button className="journal-trigger" onClick={onJournal} aria-label="打开记忆册">▤ <span>记忆册</span></button>
     <button onClick={onSound} aria-label={soundOn?"关闭环境音与音乐":"开启环境音与音乐"}>{soundOn?"♪":"♩"} <span>{soundOn?"音乐开":"音乐关"}</span></button>
+    <button className="reset-trigger" onClick={onReset} aria-label="重置游戏数据">↺<span>重置</span></button>
   </div></header>;
 }
 
@@ -859,7 +888,7 @@ function Journal({answers,resonances,heartbeatChoiceId,unlocked,profile,onClaimR
     </section>
   </div>;
 }
-function EndingScreen({endingKey,answers,resonances,heartbeatChoiceId,mode,comparisonBase,profile,runMemoryGain,specialEpilogueOpen,onSpecialEpilogue,onChapterRevisit,onFresh,onRevisit,onDailyRoute,onJournal}:{endingKey:EndingKey;answers:Record<string,AnswerRecord>;resonances:Record<string,ResonanceRecord>;heartbeatChoiceId:HeartbeatId|null;mode:Mode;comparisonBase:CompletedRun|null;profile:ProfileStateV6;runMemoryGain:number;specialEpilogueOpen:boolean;onSpecialEpilogue:()=>void;onChapterRevisit:(chapterId:ChapterId)=>void;onFresh:(sound?:boolean)=>void;onRevisit:(kind:"quick"|"full")=>void;onDailyRoute:()=>void;onJournal:(e:React.MouseEvent<HTMLButtonElement>)=>void}){
+function EndingScreen({endingKey,answers,resonances,heartbeatChoiceId,mode,comparisonBase,profile,runMemoryGain,specialEpilogueOpen,onSpecialEpilogue,onChapterRevisit,onFresh,onRevisit,onDailyRoute,onJournal,onReset}:{endingKey:EndingKey;answers:Record<string,AnswerRecord>;resonances:Record<string,ResonanceRecord>;heartbeatChoiceId:HeartbeatId|null;mode:Mode;comparisonBase:CompletedRun|null;profile:ProfileStateV6;runMemoryGain:number;specialEpilogueOpen:boolean;onSpecialEpilogue:()=>void;onChapterRevisit:(chapterId:ChapterId)=>void;onFresh:(sound?:boolean)=>void;onRevisit:(kind:"quick"|"full")=>void;onDailyRoute:()=>void;onJournal:(e:React.MouseEvent<HTMLButtonElement>)=>void;onReset:()=>void}){
   const ending=endings[endingKey];
   const heartbeatMoment=heartbeatMoments.find(moment=>moment.id===heartbeatChoiceId);
   const epilogue=composeCinematicEpilogue(endingKey,answers,resonances);
@@ -884,6 +913,6 @@ function EndingScreen({endingKey,answers,resonances,heartbeatChoiceId,mode,compa
       </div>}
       <p className="final-line">{ending.coda}</p>
     </div></details>
-    <div className="ending-actions"><button className="start-button compact" onClick={()=>onFresh()}>从头重新体验</button><button className="ghost-button" onClick={onDailyRoute}>今日记忆路线 · 三步</button><button className="ghost-button" onClick={()=>onRevisit("quick")}>快速重剪 · 三个动作</button><button className="ghost-button" onClick={()=>onRevisit("full")}>完整重剪 · 六次输入</button>{latestChapter&&<button className="ghost-button" onClick={()=>onChapterRevisit(latestChapter)}>重访章节</button>}<button className="ghost-button" onClick={onJournal}>查看记忆册</button></div>
+    <div className="ending-actions"><button className="start-button compact" onClick={()=>onFresh()}>从头重新体验</button><button className="ghost-button" onClick={onDailyRoute}>今日记忆路线 · 三步</button><button className="ghost-button" onClick={()=>onRevisit("quick")}>快速重剪 · 三个动作</button><button className="ghost-button" onClick={()=>onRevisit("full")}>完整重剪 · 六次输入</button>{latestChapter&&<button className="ghost-button" onClick={()=>onChapterRevisit(latestChapter)}>重访章节</button>}<button className="ghost-button" onClick={onJournal}>查看记忆册</button><button className="ghost-button" onClick={onReset}>重置游戏数据</button></div>
   </div></section>;
 }
