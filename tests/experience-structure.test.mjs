@@ -106,10 +106,10 @@ test("photo reveal, arrival message and marriage dialogue keep their chronology"
 
   const promiseCopy = story.scenes.find(scene => scene.id === "promise")?.body?.join(" ") ?? "";
   assert.match(promiseCopy, /冲洗了两张同版照片/);
-  assert.match(promiseCopy, /莱拉带走一张，阿拉什把另一张夹进诗集/);
+  assert.match(promiseCopy, /女生带走一张，男生把另一张夹进诗集/);
 
   const airportCopy = story.scenes.find(scene => scene.id === "echo-three")?.body?.join(" ") ?? "";
-  assert.match(airportCopy, /阿拉什发来一条迟到的信息：“我到了。”/);
+  assert.match(airportCopy, /男生发来一条迟到的信息：“我到了。”/);
   const sanJoseCopy = story.scenes.find(scene => scene.id === "two-cities")?.beats?.join(" ") ?? "";
   assert.match(sanJoseCopy, /航班落地了。我在取行李。/);
   assert.doesNotMatch(sanJoseCopy, /给卡姆兰发：“我到了。”/);
@@ -138,7 +138,7 @@ test("early intimacy and present-day relationships are built through concrete re
   assert.match(kamranCopy, /当场划掉那张/);
   const cityCopy = story.scenes.find(scene => scene.id === "two-cities")?.beats?.join(" ") ?? "";
   assert.match(cityCopy, /玛丽亚姆.*误差范围.*坏传感器/);
-  assert.match(cityCopy, /阿拉什.*望远镜跟踪架.*流星轨迹/);
+  assert.match(cityCopy, /男生.*望远镜跟踪架.*流星轨迹/);
 });
 
 test("first-run journal hides axes while post-game unlocks explanations", () => {

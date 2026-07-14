@@ -104,7 +104,7 @@ function resonanceObjectClause(resonances: Record<string, ResonanceRecord>): str
 }
 
 const sharedRealityClosure =
-  "过街后，莱拉把航班时间发给卡姆兰。阿拉什回拨玛丽亚姆，问云会不会遮住流星。过去没有消失，眼前的生活也没有暂停。";
+  "过街后，女生把航班时间发给卡姆兰。男生回拨玛丽亚姆，问云会不会遮住流星。过去没有消失，眼前的生活也没有暂停。";
 
 /**
  * 先给玩家一段电影尾声，再由界面按需展开测评信息。文本只使用本轮

@@ -234,6 +234,7 @@ test("legacy and partial profiles normalize into a safe V6 save", () => {
   assert.equal(normalized.revisit.dailyFragmentClaimCount, 2, "old saves infer the claim counter from known fragments");
   assert.deepEqual(normalized.revisit.dailyFragmentIds, progression.dailyFragmentEntries.slice(0, 2).map(entry => entry.id), "legacy numeric fragment ids migrate to stable authored ids");
   assert.equal(normalized.revisit.visitsByChapter.chapter1, 2);
+  assert.deepEqual(normalized.romance, { heartbeatIds: [], favoriteHeartbeatId: undefined, dailyMemoryRecords: [], unlockedMilestoneIds: [] }, "old saves receive a safe romance/replay state" );
 });
 
 test("daily fragment preview is side-effect free and is consumed only by an explicit claim", () => {

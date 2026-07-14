@@ -44,7 +44,7 @@ test("README and design contract agree on locked endpoints and writable micro-ac
 });
 
 test("player-facing title uses the endpoint contract without development-version copy", () => {
-  assert.match(pageSource, /她被处分/);
+  assert.match(pageSource, /女生被处分/);
   assert.match(pageSource, /离开/);
   assert.match(pageSource, /结婚/);
   assert.match(pageSource, /重逢/);

@@ -19,7 +19,7 @@ test("server renders the current memory-editing title screen", async () => {
   const html = await response.text();
   assert.match(html, /<title>革命街没有尽头/);
   assert.match(html, /互动叙事 · 记忆剪辑/);
-  assert.match(html, /她被处分、离开、结婚与重逢已经发生/);
+  assert.match(html, /女生被处分、离开、结婚与重逢已经发生/);
   assert.match(html, /有声进入/);
   assert.match(html, /静音进入/);
   assert.match(html, /自动保存/);

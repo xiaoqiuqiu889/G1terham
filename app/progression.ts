@@ -36,21 +36,21 @@ const interaction = (value: InteractionContract) => value;
 export const interactionCatalog: readonly InteractionContract[] = [
   interaction({
     id: "photo-placement", chapterId: "chapter1", sceneId: "photo", kind: "photo", requirement: "required", handledByScene: true,
-    title: "安放毕业照", prompt: "拿起莱拉保存的那张照片，决定它如何等待阿拉什。",
+    title: "安放毕业照", prompt: "拿起女生保存的那张照片，决定它如何等待男生。",
     action: "拖动、翻面，或把照片收回帆布包。", completion: "纸边擦过桌布。十三年前的两张照片，先有一张找到了位置。", memoryGain: 5,
     clue: { id: "two-identical-prints", label: "两次冲洗", text: "毕业那天冲洗了两张相同照片。后来，他们各自保留一张。" },
-    collectible: { id: "leila-graduation-photo", label: "莱拉的毕业照", motif: "photo", description: "边角被机场与抽屉磨得发白的一张。" },
+    collectible: { id: "leila-graduation-photo", label: "女生的毕业照", motif: "photo", description: "边角被机场与抽屉磨得发白的一张。" },
   }),
   interaction({
     id: "projector-repair", chapterId: "chapter1", sceneId: "campus", kind: "projector", requirement: "required", handledByScene: true, isCore: true,
     title: "修好旧放映机", prompt: "先校准焦距，再把错位的画面推回银幕中央。",
     action: "完成两段修理，并从闪回画面里认出共同记忆。", completion: "齿轮重新咬合。黑暗里，两个人同时说：别松手。", memoryGain: 7,
-    clue: { id: "projector-toolbox-note", label: "工具箱里的折痕", text: "阿拉什把每次约会时间写在维修清单背面，最早的一条只有三个字：我到了。" },
+    clue: { id: "projector-toolbox-note", label: "工具箱里的折痕", text: "男生把每次约会时间写在维修清单背面，最早的一条只有三个字：我到了。" },
     collectible: { id: "underground-film-ticket", label: "地下放映会电影票", motif: "ticket", description: "日期被机油晕开，座位号仍看得清。" },
   }),
   interaction({
     id: "first-memory-action", chapterId: "chapter1", sceneId: "choice-one", kind: "choice", requirement: "required", handledByScene: true,
-    title: "停电后的第一个动作", prompt: "让莱拉先说、先靠近，或先确认出口。",
+    title: "停电后的第一个动作", prompt: "让女生先说、先靠近，或先确认出口。",
     action: "作出第一段主记忆选择。", completion: "放映机尚未亮起，这个动作已经留在他们往后的停电里。", memoryGain: 6,
     clue: { id: "first-do-not-let-go", label: "第一次“别松手”", text: "年轻时它像一句玩笑；后来，他们才知道手会在什么时候松开。" },
   }),
@@ -73,20 +73,20 @@ export const interactionCatalog: readonly InteractionContract[] = [
     title: "翻看纪律记录", prompt: "从印章日期、缺席记录和释放通知中确认玛兹雅的去向。",
     action: "把三处记录按时间排好。", steps: ["核对带走当夜的印章日期", "把六个月缺席记录接在后面", "最后展开设拉子寄来的释放通知"],
     completion: "玛兹雅六个月后获释，没有回到大学。她后来在设拉子的儿童图书馆工作。", memoryGain: 6,
-    clue: { id: "maziya-fixed-future", label: "玛兹雅的后来", text: "她活了下来，也失去了原来的生活。莱拉在问话室里的回答不会改写这个结果。" },
-    collectible: { id: "discipline-stamp", label: "纪律委员会印章拓片", motif: "ash", description: "红色印泥盖住了莱拉的继续深造资格。" },
+    clue: { id: "maziya-fixed-future", label: "玛兹雅的后来", text: "她活了下来，也失去了原来的生活。女生在问话室里的回答不会改写这个结果。" },
+    collectible: { id: "discipline-stamp", label: "纪律委员会印章拓片", motif: "ash", description: "红色印泥盖住了女生的继续深造资格。" },
   }),
   interaction({
     id: "departure-packing", chapterId: "chapter3", sceneId: "small-room", kind: "explore", requirement: "optional",
     title: "整理离开前的桌面", prompt: "钥匙、复健单和护照申请放在同一张桌上，却指向三个方向。",
     action: "依次翻看出租屋钥匙、父亲的复健单与没有回音的护照申请。", steps: ["拿起出租屋钥匙", "展开父亲的复健单", "翻到护照申请最后一页"],
-    completion: "莱拉把钥匙推回阿拉什一侧。离开第一次有了可触摸的重量。", memoryGain: 5,
+    completion: "女生把钥匙推回男生一侧。离开第一次有了可触摸的重量。", memoryGain: 5,
     clue: { id: "three-directions", label: "三个方向", text: "留下不是一句理想；离开也不是一句背叛。" },
     collectible: { id: "rental-room-key", label: "出租屋钥匙", motif: "ticket", description: "他们曾经共同生活过的最普通证据。" },
   }),
   interaction({
     id: "last-night-truth", chapterId: "chapter3", sceneId: "choice-three", kind: "choice", requirement: "required", handledByScene: true,
-    title: "完成最后一夜", prompt: "把卡姆兰与机票说到什么程度，由莱拉亲手决定。",
+    title: "完成最后一夜", prompt: "把卡姆兰与机票说到什么程度，由女生亲手决定。",
     action: "选择全部说完、再问一条共同的路，或只说航班。", completion: "三种说法都通向机场；只有沉默的形状不同。", memoryGain: 7,
     clue: { id: "sealed-flight-envelope", label: "装着航班的信封", text: "卡姆兰的名字是否被说出，会在十三年后的路口回来。" },
   }),
@@ -122,13 +122,13 @@ export const interactionCatalog: readonly InteractionContract[] = [
   interaction({
     id: "reunion-gaze", chapterId: "chapter5", sceneId: "gaze", kind: "gaze", requirement: "required", handledByScene: true,
     title: "决定第一眼", prompt: "先看手与白发、旧诗集，或时钟与机场方向。",
-    action: "让视线真实落到画面中的一个位置。", completion: "门开了。阿拉什说：“我到了。”莱拉回答：“我知道。”", memoryGain: 5,
+    action: "让视线真实落到画面中的一个位置。", completion: "门开了。男生说：“我到了。”女生回答：“我知道。”", memoryGain: 5,
     clue: { id: "arrival-finally", label: "终于抵达", text: "同一句“我到了”，隔了十三年才真正抵达彼此面前。" },
   }),
   interaction({
     id: "photo-pairing", chapterId: "chapter5", sceneId: "book", kind: "combine", requirement: "required", isCore: true,
     title: "对齐两张相同照片", prompt: "翻看两张照片的磨损，再把它们放进同一个取景框。",
-    action: "组合莱拉的折角照片与阿拉什夹在诗集里的照片。", steps: ["莱拉保存的雨痕折角", "阿拉什保存的书页黄斑"],
+    action: "组合女生的折角照片与男生夹在诗集里的照片。", steps: ["女生保存的雨痕折角", "男生保存的书页黄斑"],
     completion: "同一次冲印。两种磨损。没有一张被丢掉。", memoryGain: 6,
     collectible: { id: "paired-graduation-photos", label: "两张同版毕业照", motif: "photo", description: "站位相同，十三年的磨损不同。" },
   }),
@@ -170,31 +170,31 @@ export const paidDialogues: readonly PaidDialogueContract[] = [
   {
     id: "paid-photo-developing", chapterId: "chapter1", anchorSceneId: "promise", title: "两张相同的照片",
     previewLine: "“照片要冲两张吗？”",
-    lockedLines: ["阿拉什：“一样的两张。她带一张。”", "莱拉：“另一张呢？”", "阿拉什：“我留着。免得以后有人说，我们那天没站在一起。”"],
+    lockedLines: ["男生：“一样的两张。她带一张。”", "女生：“另一张呢？”", "男生：“我留着。免得以后有人说，我们那天没站在一起。”"],
     archiveTitle: "冲洗照片时没有继续说完的话",
   },
   {
     id: "paid-lab-door", chapterId: "chapter2", anchorSceneId: "after-gate", title: "铁门合上以前",
     previewLine: "“其实那天，我本来想叫住你。”",
-    lockedLines: ["莱拉：“我想说，我还爱你。”", "“可我不能再留在原地。”", "“别再让我等一年。”", "门先在这句话以前关上了。"],
+    lockedLines: ["女生：“我想说，我还爱你。”", "“可我不能再留在原地。”", "“别再让我等一年。”", "门先在这句话以前关上了。"],
     archiveTitle: "实验室门口没有说出的告白",
   },
   {
     id: "paid-marriage-truth", chapterId: "chapter3", anchorSceneId: "kamran", title: "视频挂断以前",
     previewLine: "卡姆兰：“我知道你不是因为爱我才答应这次见面。”",
-    lockedLines: ["莱拉：“我需要一条能离开的路。这一点，我不能假装。”", "卡姆兰：“我也不接受没有代价的假装。结婚以后，我们得把生活当真的。”", "莱拉：“我会认真和你生活，但不会把过去删掉。”", "卡姆兰：“那就不删。我们只答应，不拿沉默惩罚对方。”"],
+    lockedLines: ["女生：“我需要一条能离开的路。这一点，我不能假装。”", "卡姆兰：“我也不接受没有代价的假装。结婚以后，我们得把生活当真的。”", "女生：“我会认真和你生活，但不会把过去删掉。”", "卡姆兰：“那就不删。我们只答应，不拿沉默惩罚对方。”"],
     archiveTitle: "婚前视频里说清的边界",
   },
   {
     id: "paid-two-cities-choice", chapterId: "chapter4", anchorSceneId: "two-cities", title: "望远镜旁的答案",
     previewLine: "玛丽亚姆：“如果那年可以重新选一次，你会跟她走吗？”",
-    lockedLines: ["阿拉什：“我会先把父亲安顿好，再问她愿不愿等。”", "“可那一年，她已经等完了。”", "玛丽亚姆：“所以答案不是会不会走。”", "阿拉什：“是我会不会早点把不能走说清楚。”"],
+    lockedLines: ["男生：“我会先把父亲安顿好，再问她愿不愿等。”", "“可那一年，她已经等完了。”", "玛丽亚姆：“所以答案不是会不会走。”", "男生：“是我会不会早点把不能走说清楚。”"],
     archiveTitle: "两座城市里最诚实的回答",
   },
   {
     id: "paid-reunion-hypothesis", chapterId: "chapter5", anchorSceneId: "book", title: "一个没有发生的假设",
-    previewLine: "莱拉：“如果我们现在都没有结婚呢？”",
-    lockedLines: ["阿拉什：“那我们会不会又把亏欠误认成爱情？”", "莱拉：“也许。也许我们只会一起喝完这杯茶。”", "阿拉什：“然后呢？”", "莱拉：“然后各自回家。只是这次，把再见说完。”"],
+    previewLine: "女生：“如果我们现在都没有结婚呢？”",
+    lockedLines: ["男生：“那我们会不会又把亏欠误认成爱情？”", "女生：“也许。也许我们只会一起喝完这杯茶。”", "男生：“然后呢？”", "女生：“然后各自回家。只是这次，把再见说完。”"],
     archiveTitle: "旧书旁没有继续追问的假设",
   },
 ];
@@ -297,9 +297,18 @@ export interface RevisitState {
   dailyFragmentClaimCount: number;
   specialEpilogue: "locked" | "available" | "viewed";
 }
+export interface DailyMemoryRecord {
+  dateKey: string; rotationId: string; choices: string[]; previousChoices?: string[]; plays: number; completedAt: number;
+}
+export interface RomanceState {
+  heartbeatIds: string[];
+  favoriteHeartbeatId?: string;
+  dailyMemoryRecords: DailyMemoryRecord[];
+  unlockedMilestoneIds: string[];
+}
 export interface ProfileStateV6 {
   version: 6; progression: ProgressionState; entitlements: EntitlementState; paidContent: PaidContentState;
-  revisit: RevisitState; firstPlayedAt: number; lastSeenAt: number;
+  revisit: RevisitState; romance: RomanceState; firstPlayedAt: number; lastSeenAt: number;
 }
 const rewardStatuses=():Record<ChapterId,RewardStatus>=>({chapter1:"locked",chapter2:"locked",chapter3:"locked",chapter4:"locked",chapter5:"locked"});
 const emptyChapterMemory=():Record<ChapterId,number>=>({chapter1:0,chapter2:0,chapter3:0,chapter4:0,chapter5:0});
@@ -310,6 +319,7 @@ export function createInitialProfile(now=Date.now()):ProfileStateV6 {
     entitlements:{directDialogues:[],chapterPacks:[],fullPass:false,simulatedPurchases:[]},
     paidContent:{impressionIds:[],skippedIds:[],completedIds:[]},
     revisit:{visitsByChapter:{},dailyFragmentIds:[],dailyFragmentClaimCount:0,specialEpilogue:"locked"},
+    romance:{heartbeatIds:[],dailyMemoryRecords:[],unlockedMilestoneIds:[]},
     firstPlayedAt:now,lastSeenAt:now,
   };
 }
@@ -330,13 +340,16 @@ function normalizeSimulatedPurchase(item:SimulatedPurchase):SimulatedPurchase {
 export function normalizeProfile(input:Partial<ProfileStateV6>|null|undefined,now=Date.now()):ProfileStateV6 {
   const base=createInitialProfile(now); if(!input||typeof input!=="object")return base;
   const progression=input.progression||base.progression; const entitlements=input.entitlements||base.entitlements;
-  const paidContent=input.paidContent||base.paidContent; const revisit=input.revisit||base.revisit;
+  const paidContent=input.paidContent||base.paidContent; const revisit=input.revisit||base.revisit; const romance=input.romance||base.romance;
+  const heartbeatIds=unique((romance.heartbeatIds||[]).filter(id=>["hands","arrival","pomegranate"].includes(id)));
+  const dailyMemoryRecords=(romance.dailyMemoryRecords||[]).filter(record=>record&&typeof record.dateKey==="string"&&Array.isArray(record.choices)).map(record=>({...record,choices:[...record.choices],previousChoices:record.previousChoices?[...record.previousChoices]:undefined,plays:Math.max(1,Math.floor(record.plays||1)),completedAt:Number.isFinite(record.completedAt)?record.completedAt:now}));
   return {
     version:6,
     progression:{...base.progression,...progression,memoryExposure:clampMemory(progression.memoryExposure||0),completedInteractionIds:unique(progression.completedInteractionIds||[]),discoveredClueIds:unique(progression.discoveredClueIds||[]),collectibleIds:unique(progression.collectibleIds||[]),completedChapterIds:unique((progression.completedChapterIds||[]).filter(id=>chapterIds.includes(id))),chapterRewards:normalizeChapterRecord(progression.chapterRewards,rewardStatuses),chapterMemory:normalizeChapterRecord(progression.chapterMemory,emptyChapterMemory),axisValues:{...base.progression.axisValues,...(progression.axisValues||{})}},
     entitlements:{...base.entitlements,...entitlements,directDialogues:unique(entitlements.directDialogues||[]),chapterPacks:unique(entitlements.chapterPacks||[]),simulatedPurchases:(entitlements.simulatedPurchases||[]).map(normalizeSimulatedPurchase)},
     paidContent:{impressionIds:unique(paidContent.impressionIds||[]),skippedIds:unique(paidContent.skippedIds||[]),completedIds:unique(paidContent.completedIds||[])},
     revisit:{...base.revisit,...revisit,visitsByChapter:revisit.visitsByChapter||{},dailyFragmentIds:unique((revisit.dailyFragmentIds||[]).map(normalizeDailyFragmentId)),dailyFragmentClaimCount:Number.isFinite(revisit.dailyFragmentClaimCount)?Math.max(0,Math.floor(revisit.dailyFragmentClaimCount)):unique(revisit.dailyFragmentIds||[]).length},
+    romance:{heartbeatIds,favoriteHeartbeatId:heartbeatIds.includes(romance.favoriteHeartbeatId||"")?romance.favoriteHeartbeatId:heartbeatIds.at(-1),dailyMemoryRecords,unlockedMilestoneIds:[{days:1,id:"first-return"},{days:3,id:"three-weather"},{days:5,id:"five-returns"}].filter(item=>new Set(dailyMemoryRecords.map(record=>record.dateKey)).size>=item.days).map(item=>item.id)},
     firstPlayedAt:input.firstPlayedAt||now,lastSeenAt:input.lastSeenAt||now,
   };
 }
@@ -464,11 +477,11 @@ export function claimedRewardIds(profile:ProfileStateV6):ChapterId[]{
   return chapterIds.filter(id=>profile.progression.chapterRewards[id]==="claimed");
 }
 export const dailyFragmentEntries=[
-  {id:"kamran-kitchen-photo",text:"卡姆兰把新洗的照片晾在厨房。他总把莱拉选中的那张放在最前面。"},
-  {id:"mariam-meteor-probability",text:"玛丽亚姆记下今晚流星出现的概率。阿拉什替她把望远镜又校准了一次。"},
-  {id:"maziya-library-poetry",text:"玛兹雅在儿童图书馆修补一本缺页的诗集。她没有再问莱拉当年在问话室里说了什么。"},
-  {id:"leila-arrival-message",text:"莱拉在机场落地后给卡姆兰发了一句：我到了。这一次，消息成功送达。"},
-  {id:"arash-bus-tickets",text:"阿拉什把两张旧公交票换到新书里。纸边碎了一点，目的地仍在。"},
+  {id:"kamran-kitchen-photo",text:"卡姆兰把新洗的照片晾在厨房。他总把女生选中的那张放在最前面。"},
+  {id:"mariam-meteor-probability",text:"玛丽亚姆记下今晚流星出现的概率。男生替她把望远镜又校准了一次。"},
+  {id:"maziya-library-poetry",text:"玛兹雅在儿童图书馆修补一本缺页的诗集。她没有再问女生当年在问话室里说了什么。"},
+  {id:"leila-arrival-message",text:"女生在机场落地后给卡姆兰发了一句：我到了。这一次，消息成功送达。"},
+  {id:"arash-bus-tickets",text:"男生把两张旧公交票换到新书里。纸边碎了一点，目的地仍在。"},
 ] as const;
 export const dailyFragments= dailyFragmentEntries.map(entry=>entry.text);
 
